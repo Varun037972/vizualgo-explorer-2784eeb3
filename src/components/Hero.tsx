@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Play } from "lucide-react";
 import heroImage from "@/assets/hero-algorithm-bg.jpg";
@@ -49,21 +50,25 @@ const Hero = () => {
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-4">
-            <Button
-              size="lg"
-              className="bg-gradient-primary text-primary-foreground hover:opacity-90 transition-all shadow-glow-primary hover:shadow-glow-primary hover:scale-105 font-semibold px-8 group"
-            >
-              Launch Visualizer Now
-              <Play className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
-            </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              className="border-primary/30 hover:bg-primary/10 hover:border-primary/50 backdrop-blur-sm font-semibold px-8 group"
-            >
-              Watch Demo
-              <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
-            </Button>
+            <Link to="/visualizer">
+              <Button
+                size="lg"
+                className="bg-gradient-primary text-primary-foreground hover:opacity-90 transition-all shadow-glow-primary hover:shadow-glow-primary hover:scale-105 font-semibold px-8 group"
+              >
+                Launch Visualizer Now
+                <Play className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+              </Button>
+            </Link>
+            <Link to="/demo">
+              <Button
+                size="lg"
+                variant="outline"
+                className="border-primary/30 hover:bg-primary/10 hover:border-primary/50 backdrop-blur-sm font-semibold px-8 group"
+              >
+                Watch Demo
+                <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+              </Button>
+            </Link>
           </div>
 
           {/* Stats */}
