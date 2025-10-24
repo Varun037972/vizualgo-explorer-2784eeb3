@@ -5,6 +5,9 @@ import { Slider } from "@/components/ui/slider";
 import { Play, Pause, RotateCcw, SkipForward, SkipBack, Sparkles, CheckCircle2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
+import { CodeEditor } from "./CodeEditor";
+import { ComplexityHeatmap } from "./ComplexityHeatmap";
+import { MemoryVisualizer } from "./MemoryVisualizer";
 
 interface Step {
   array: number[];
@@ -349,6 +352,9 @@ export const SortingVisualizer = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
+      {/* Code Editor */}
+      <CodeEditor onCodeChange={(code, lang) => console.log("Code updated:", lang)} />
+
       {/* Controls */}
       <Card className="border-primary/20 hover:border-primary/40 transition-colors">
         <CardHeader>
@@ -553,8 +559,58 @@ export const SortingVisualizer = () => {
         </CardContent>
       </Card>
 
-      {/* Stats */}
+      {/* Advanced Analysis Panels */}
       <div className="grid md:grid-cols-3 gap-4">
+        <ComplexityHeatmap 
+          comparisons={stats.comparisons} 
+          swaps={stats.swaps} 
+          isActive={steps.length > 0}
+        />
+        <MemoryVisualizer 
+          arraySize={array.length}
+          currentStep={currentStep}
+          totalSteps={steps.length}
+          isActive={steps.length > 0}
+        />
+        <Card className="hover:border-primary/50 transition-all hover:shadow-glow-primary hover-scale">
+          <CardHeader>
+            <CardTitle className="text-lg text-muted-foreground">Performance Stats</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Comparisons</span>
+                <span className="text-2xl font-mono font-bold text-primary">
+                  {stats.comparisons.toLocaleString()}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Swaps</span>
+                <span className="text-2xl font-mono font-bold text-primary">
+                  {stats.swaps.toLocaleString()}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Array Size</span>
+                <span className="text-2xl font-mono font-bold text-primary">
+                  {array.length}
+                </span>
+              </div>
+            </div>
+            <div className="pt-3 border-t border-border">
+              <div className="text-center">
+                <p className="text-xs text-muted-foreground mb-1">Time Complexity</p>
+                <p className="text-3xl font-mono font-bold bg-gradient-primary bg-clip-text text-transparent">
+                  {stats.timeComplexity}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Original Stats Row (Deprecated - kept for reference) */}
+      <div className="grid md:grid-cols-3 gap-4 hidden">
         <Card className="hover:border-primary/50 transition-all hover:shadow-glow-primary hover-scale">
           <CardHeader>
             <CardTitle className="text-lg text-muted-foreground">Time Complexity</CardTitle>

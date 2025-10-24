@@ -1,7 +1,8 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, BookOpen, Code2, Rocket, Lightbulb, Video, FileText } from "lucide-react";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { ArrowLeft, BookOpen, Code2, Rocket, Lightbulb, Video, FileText, Zap, Activity, Database } from "lucide-react";
 
 const docSections = [
   {
@@ -93,6 +94,95 @@ const Docs = () => {
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
             Everything you need to know about using the Advanced Algorithm Visualizer effectively
           </p>
+        </div>
+      </section>
+
+      {/* Quick Start Guide */}
+      <section className="py-12 bg-card/30">
+        <div className="container mx-auto px-4 max-w-4xl">
+          <h2 className="text-2xl font-bold mb-6">Interactive Quick Start Guide</h2>
+          <Accordion type="single" collapsible className="space-y-4">
+            <AccordionItem value="item-1" className="border border-border rounded-lg px-4 bg-card">
+              <AccordionTrigger className="hover:text-primary">
+                <div className="flex items-center gap-2">
+                  <Zap className="h-5 w-5 text-primary" />
+                  <span>Getting Started</span>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="text-muted-foreground space-y-3 pt-4">
+                <p>1. Navigate to the <strong>Visualizer</strong> page</p>
+                <p>2. Choose your algorithm from the dropdown (Bubble Sort, Quick Sort, Merge Sort, etc.)</p>
+                <p>3. Adjust array size (5-50 elements) and animation speed to your preference</p>
+                <p>4. Click <strong>"Visualize"</strong> to watch the algorithm execute step-by-step</p>
+                <p>5. Use playback controls to pause, step forward/backward, or restart</p>
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="item-2" className="border border-border rounded-lg px-4 bg-card">
+              <AccordionTrigger className="hover:text-primary">
+                <div className="flex items-center gap-2">
+                  <Code2 className="h-5 w-5 text-primary" />
+                  <span>Understanding the Code</span>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="text-muted-foreground space-y-3 pt-4">
+                <p>The <strong>Code Editor</strong> shows real implementation in Python, Java, or C++.</p>
+                <p><strong>Yellow bars</strong> = elements being compared</p>
+                <p><strong>Red bars</strong> = elements being swapped</p>
+                <p><strong>Purple bars</strong> = pivot element (for Quick Sort)</p>
+                <p><strong>Green bars</strong> = elements in their final sorted position</p>
+                <p>Edit the code to experiment with different implementations!</p>
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="item-3" className="border border-border rounded-lg px-4 bg-card">
+              <AccordionTrigger className="hover:text-primary">
+                <div className="flex items-center gap-2">
+                  <Activity className="h-5 w-5 text-primary" />
+                  <span>Complexity Heatmap</span>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="text-muted-foreground space-y-3 pt-4">
+                <p>The <strong>Complexity Heatmap</strong> highlights code bottlenecks in real-time.</p>
+                <p><strong>Red zones (80-100%)</strong> = Most time-consuming operations (critical hotspots)</p>
+                <p><strong>Orange zones (60-80%)</strong> = High-frequency operations</p>
+                <p><strong>Yellow zones (40-60%)</strong> = Moderate complexity</p>
+                <p><strong>Green zones (20-40%)</strong> = Low-cost operations</p>
+                <p>Use this to identify which parts of your algorithm need optimization!</p>
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="item-4" className="border border-border rounded-lg px-4 bg-card">
+              <AccordionTrigger className="hover:text-primary">
+                <div className="flex items-center gap-2">
+                  <Database className="h-5 w-5 text-primary" />
+                  <span>Memory Visualization</span>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="text-muted-foreground space-y-3 pt-4">
+                <p>Track memory allocation in real-time with our <strong>Memory Visualizer</strong>.</p>
+                <p><strong>Call Stack</strong> = Shows active function calls (main, sort, partition)</p>
+                <p><strong>Heap Memory</strong> = Displays array storage (each square = array element)</p>
+                <p><strong>Total Memory Usage</strong> = Live tracker of bytes consumed</p>
+                <p>Understanding memory is crucial for optimizing space complexity!</p>
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="item-5" className="border border-border rounded-lg px-4 bg-card">
+              <AccordionTrigger className="hover:text-primary">
+                <div className="flex items-center gap-2">
+                  <Zap className="h-5 w-5 text-primary" />
+                  <span>Race Mode</span>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="text-muted-foreground space-y-3 pt-4">
+                <p>Switch to <strong>Race Mode</strong> to compare multiple algorithms simultaneously!</p>
+                <p>Watch Quick Sort, Merge Sort, Bubble Sort, and Insertion Sort compete head-to-head</p>
+                <p>See which algorithm finishes first and understand why O(n log n) beats O(n²)</p>
+                <p>Perfect for learning the practical impact of time complexity!</p>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
         </div>
       </section>
 
