@@ -94,38 +94,37 @@ const Demo = () => {
         <div className="container mx-auto px-4">
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
             {demos.map((demo, index) => (
-              <Card
-                key={index}
-                className="hover:border-primary/50 transition-all hover:shadow-glow-primary group cursor-pointer"
-              >
-                <CardHeader>
-                  <div className="flex items-start justify-between mb-2">
-                    <div className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                      demo.difficulty === "Beginner" ? "bg-secondary/20 text-secondary" :
-                      demo.difficulty === "Intermediate" ? "bg-primary/20 text-primary" :
-                      "bg-accent/20 text-accent"
-                    }`}>
-                      {demo.difficulty}
+              <Link key={index} to="/visualizer">
+                <Card className="hover:border-primary/50 transition-all hover:shadow-glow-primary group cursor-pointer h-full">
+                  <CardHeader>
+                    <div className="flex items-start justify-between mb-2">
+                      <div className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                        demo.difficulty === "Beginner" ? "bg-secondary/20 text-secondary" :
+                        demo.difficulty === "Intermediate" ? "bg-primary/20 text-primary" :
+                        "bg-accent/20 text-accent"
+                      }`}>
+                        {demo.difficulty}
+                      </div>
+                      <div className="text-xs text-muted-foreground">{demo.language}</div>
                     </div>
-                    <div className="text-xs text-muted-foreground">{demo.language}</div>
-                  </div>
-                  <CardTitle className="text-xl group-hover:text-primary transition-colors">
-                    {demo.title}
-                  </CardTitle>
-                  <CardDescription className="text-sm">{demo.description}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center justify-between">
-                    <div className="text-sm">
-                      <span className="text-muted-foreground">Time: </span>
-                      <span className="font-mono font-semibold">{demo.complexity}</span>
+                    <CardTitle className="text-xl group-hover:text-primary transition-colors">
+                      {demo.title}
+                    </CardTitle>
+                    <CardDescription className="text-sm">{demo.description}</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center justify-between">
+                      <div className="text-sm">
+                        <span className="text-muted-foreground">Time: </span>
+                        <span className="font-mono font-semibold">{demo.complexity}</span>
+                      </div>
+                      <Button size="sm" variant="ghost" className="group-hover:bg-primary/10">
+                        <Play className="h-4 w-4" />
+                      </Button>
                     </div>
-                    <Button size="sm" variant="ghost" className="group-hover:bg-primary/10">
-                      <Play className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              </Link>
             ))}
           </div>
         </div>
