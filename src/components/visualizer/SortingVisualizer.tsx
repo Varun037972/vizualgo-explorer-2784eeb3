@@ -2,8 +2,9 @@ import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
-import { Play, Pause, RotateCcw, SkipForward, SkipBack } from "lucide-react";
+import { Play, Pause, RotateCcw, SkipForward, SkipBack, Sparkles, CheckCircle2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Progress } from "@/components/ui/progress";
 
 interface Step {
   array: number[];
@@ -33,6 +34,7 @@ export const SortingVisualizer = () => {
   const [arraySize, setArraySize] = useState(15);
   const [algorithm, setAlgorithm] = useState<Algorithm>("bubble");
   const [stats, setStats] = useState({ comparisons: 0, swaps: 0, timeComplexity: "O(n²)" });
+  const [isComplete, setIsComplete] = useState(false);
 
   const generateRandomArray = useCallback(() => {
     const newArray = Array.from({ length: arraySize }, () => Math.floor(Math.random() * 100) + 10);
@@ -40,6 +42,7 @@ export const SortingVisualizer = () => {
     setSteps([]);
     setCurrentStep(0);
     setIsPlaying(false);
+    setIsComplete(false);
   }, [arraySize]);
 
   useEffect(() => {
@@ -303,6 +306,7 @@ export const SortingVisualizer = () => {
 
   const startVisualization = () => {
     let sortSteps: Step[] = [];
+    setIsComplete(false);
     
     switch (algorithm) {
       case "bubble":
@@ -333,20 +337,25 @@ export const SortingVisualizer = () => {
         setCurrentStep((prev) => prev + 1);
       }, speed);
       return () => clearTimeout(timer);
-    } else if (currentStep >= steps.length - 1) {
+    } else if (currentStep >= steps.length - 1 && steps.length > 0) {
       setIsPlaying(false);
+      setIsComplete(true);
     }
   }, [isPlaying, currentStep, steps.length, speed]);
 
   const currentStepData = steps[currentStep] || { array, description: "Click Visualize to start" };
   const maxValue = Math.max(...array);
+  const progress = steps.length > 0 ? ((currentStep + 1) / steps.length) * 100 : 0;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
       {/* Controls */}
-      <Card>
+      <Card className="border-primary/20 hover:border-primary/40 transition-colors">
         <CardHeader>
-          <CardTitle>Controls</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-primary" />
+            Controls
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -391,17 +400,27 @@ export const SortingVisualizer = () => {
           </div>
 
           <div className="flex gap-2 flex-wrap">
-            <Button onClick={startVisualization} disabled={isPlaying || steps.length > 0} className="bg-gradient-primary">
+            <Button 
+              onClick={startVisualization} 
+              disabled={isPlaying || steps.length > 0} 
+              className="bg-gradient-primary hover:shadow-glow-primary transition-all hover:scale-105"
+            >
               <Play className="mr-2 h-4 w-4" />
               Visualize
             </Button>
-            <Button onClick={() => setIsPlaying(!isPlaying)} disabled={steps.length === 0} variant="outline">
+            <Button 
+              onClick={() => setIsPlaying(!isPlaying)} 
+              disabled={steps.length === 0} 
+              variant="outline"
+              className="hover:scale-105 transition-transform"
+            >
               {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
             </Button>
             <Button
               onClick={() => setCurrentStep(Math.max(0, currentStep - 1))}
               disabled={currentStep === 0 || isPlaying}
               variant="outline"
+              className="hover:scale-105 transition-transform"
             >
               <SkipBack className="h-4 w-4" />
             </Button>
@@ -409,10 +428,16 @@ export const SortingVisualizer = () => {
               onClick={() => setCurrentStep(Math.min(steps.length - 1, currentStep + 1))}
               disabled={currentStep >= steps.length - 1 || isPlaying}
               variant="outline"
+              className="hover:scale-105 transition-transform"
             >
               <SkipForward className="h-4 w-4" />
             </Button>
-            <Button onClick={generateRandomArray} disabled={isPlaying} variant="outline">
+            <Button 
+              onClick={generateRandomArray} 
+              disabled={isPlaying} 
+              variant="outline"
+              className="hover:scale-105 transition-transform"
+            >
               <RotateCcw className="h-4 w-4" />
             </Button>
           </div>
@@ -420,18 +445,29 @@ export const SortingVisualizer = () => {
       </Card>
 
       {/* Visualization */}
-      <Card>
+      <Card className={`border-primary/20 transition-all ${isComplete ? 'border-green-500/50 shadow-glow-primary' : ''}`}>
         <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <span>Visualization</span>
-            <span className="text-sm font-normal text-muted-foreground">
-              Step {currentStep + 1} of {steps.length || 1}
-            </span>
-          </CardTitle>
+          <div className="space-y-3">
+            <CardTitle className="flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                Visualization
+                {isComplete && <CheckCircle2 className="h-5 w-5 text-green-500 animate-scale-in" />}
+              </span>
+              <span className="text-sm font-normal text-muted-foreground">
+                Step {currentStep + 1} of {steps.length || 1}
+              </span>
+            </CardTitle>
+            {steps.length > 0 && (
+              <Progress value={progress} className="h-2" />
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <div className="min-h-[400px] bg-muted rounded-lg p-6 flex items-end justify-center gap-1">
+            <div className="min-h-[400px] bg-gradient-to-b from-muted/50 to-muted rounded-lg p-6 flex items-end justify-center gap-1 relative overflow-hidden">
+              {isComplete && (
+                <div className="absolute inset-0 bg-gradient-to-r from-green-500/10 via-primary/10 to-green-500/10 animate-pulse" />
+              )}
               {currentStepData.array.map((value, idx) => {
                 const isComparing = currentStepData.comparing?.includes(idx);
                 const isSwapping = currentStepData.swapping?.includes(idx);
@@ -441,33 +477,77 @@ export const SortingVisualizer = () => {
                 return (
                   <div
                     key={idx}
-                    className="flex flex-col items-center gap-1 transition-all duration-300"
+                    className={`flex flex-col items-center gap-1 relative z-10 ${
+                      isSwapping ? 'animate-bounce' : 'animate-fade-in'
+                    }`}
                     style={{ flex: 1, maxWidth: "60px" }}
                   >
-                    <span className="text-xs font-mono">{value}</span>
+                    <span className={`text-xs font-mono font-bold transition-all duration-300 ${
+                      isComparing || isSwapping ? 'text-primary scale-125' : ''
+                    }`}>
+                      {value}
+                    </span>
                     <div
-                      className={`w-full rounded-t transition-all duration-300 ${
+                      className={`w-full rounded-t transition-all duration-500 relative ${
                         isPivot
-                          ? "bg-purple-500"
+                          ? "bg-purple-500 shadow-[0_0_20px_rgba(168,85,247,0.6)]"
                           : isSwapping
-                          ? "bg-red-500"
+                          ? "bg-red-500 shadow-[0_0_20px_rgba(239,68,68,0.6)] scale-110"
                           : isComparing
-                          ? "bg-yellow-500"
+                          ? "bg-yellow-500 shadow-[0_0_20px_rgba(234,179,8,0.6)]"
                           : isSorted
-                          ? "bg-green-500"
-                          : "bg-primary"
+                          ? "bg-green-500 shadow-[0_0_15px_rgba(34,197,94,0.5)]"
+                          : "bg-gradient-to-t from-primary to-primary/60"
                       }`}
                       style={{
                         height: `${(value / maxValue) * 300}px`,
                         minHeight: "20px",
+                        transform: isSwapping ? 'scale(1.1)' : 'scale(1)',
                       }}
-                    />
+                    >
+                      {(isSwapping || isComparing) && (
+                        <div className="absolute inset-0 bg-white/20 animate-pulse rounded-t" />
+                      )}
+                    </div>
                   </div>
                 );
               })}
             </div>
-            <div className="text-center">
-              <p className="text-lg font-semibold">{currentStepData.description}</p>
+            <div className="text-center space-y-2">
+              <p className={`text-lg font-semibold transition-all duration-300 ${
+                isComplete ? 'text-green-500 animate-pulse' : ''
+              }`}>
+                {currentStepData.description}
+              </p>
+              {isComplete && (
+                <p className="text-sm text-green-500 animate-fade-in">
+                  ✨ Array sorted successfully! ✨
+                </p>
+              )}
+            </div>
+
+            {/* Legend */}
+            <div className="flex flex-wrap gap-4 justify-center text-sm">
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 bg-yellow-500 rounded" />
+                <span>Comparing</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 bg-red-500 rounded" />
+                <span>Swapping</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 bg-purple-500 rounded" />
+                <span>Pivot</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 bg-green-500 rounded" />
+                <span>Sorted</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 bg-primary rounded" />
+                <span>Unsorted</span>
+              </div>
             </div>
           </div>
         </CardContent>
@@ -475,28 +555,45 @@ export const SortingVisualizer = () => {
 
       {/* Stats */}
       <div className="grid md:grid-cols-3 gap-4">
-        <Card>
+        <Card className="hover:border-primary/50 transition-all hover:shadow-glow-primary hover-scale">
           <CardHeader>
-            <CardTitle className="text-lg">Time Complexity</CardTitle>
+            <CardTitle className="text-lg text-muted-foreground">Time Complexity</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-mono font-bold text-primary">{stats.timeComplexity}</p>
+            <p className="text-4xl font-mono font-bold bg-gradient-primary bg-clip-text text-transparent">
+              {stats.timeComplexity}
+            </p>
+            <p className="text-xs text-muted-foreground mt-2">
+              {algorithm === "bubble" || algorithm === "insertion" || algorithm === "selection" 
+                ? "Quadratic time" 
+                : "Logarithmic time"}
+            </p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="hover:border-primary/50 transition-all hover:shadow-glow-primary hover-scale">
           <CardHeader>
-            <CardTitle className="text-lg">Comparisons</CardTitle>
+            <CardTitle className="text-lg text-muted-foreground">Comparisons</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-mono font-bold text-primary">{stats.comparisons}</p>
+            <p className="text-4xl font-mono font-bold text-primary animate-fade-in">
+              {stats.comparisons.toLocaleString()}
+            </p>
+            <p className="text-xs text-muted-foreground mt-2">
+              Element comparisons made
+            </p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="hover:border-primary/50 transition-all hover:shadow-glow-primary hover-scale">
           <CardHeader>
-            <CardTitle className="text-lg">Swaps</CardTitle>
+            <CardTitle className="text-lg text-muted-foreground">Swaps</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-mono font-bold text-primary">{stats.swaps}</p>
+            <p className="text-4xl font-mono font-bold text-primary animate-fade-in">
+              {stats.swaps.toLocaleString()}
+            </p>
+            <p className="text-xs text-muted-foreground mt-2">
+              Position changes made
+            </p>
           </CardContent>
         </Card>
       </div>
