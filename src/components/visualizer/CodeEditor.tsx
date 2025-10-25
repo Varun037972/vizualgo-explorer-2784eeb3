@@ -175,15 +175,21 @@ export const CodeEditor = ({ onCodeChange }: CodeEditorProps) => {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <Textarea
-          value={code}
-          onChange={(e) => handleCodeEdit(e.target.value)}
-          className="font-mono text-sm min-h-[300px] bg-muted/50 resize-none"
-          placeholder="Write your algorithm here..."
-        />
-        <p className="text-xs text-muted-foreground mt-2">
-          ✨ Real code execution: Edit the code above to see how changes affect performance
-        </p>
+          <Textarea
+            value={code}
+            onChange={(e) => handleCodeEdit(e.target.value)}
+            className="font-mono text-sm min-h-[300px] bg-muted/50 resize-none"
+            placeholder="Write your algorithm or pseudocode here..."
+            spellCheck={false}
+          />
+          <div className="space-y-1">
+            <p className="text-xs text-muted-foreground">
+              ✨ Real code execution: Edit the code above to see how changes affect performance
+            </p>
+            <p className="text-xs text-muted-foreground">
+              💡 You can write your own algorithm or pseudocode - the visualizer will simulate the execution
+            </p>
+          </div>
       </CardContent>
     </Card>
   );

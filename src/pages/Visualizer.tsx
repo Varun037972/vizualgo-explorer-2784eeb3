@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Code2, Flame } from "lucide-react";
+import { ArrowLeft, Code2, Flame, Network } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SortingVisualizer } from "@/components/visualizer/SortingVisualizer";
 import { RaceMode } from "@/components/visualizer/RaceMode";
+import { TreeVisualizer } from "@/components/visualizer/TreeVisualizer";
 
 const Visualizer = () => {
   const [isRacing, setIsRacing] = useState(false);
@@ -52,6 +53,10 @@ const Visualizer = () => {
                   <Flame className="h-4 w-4" />
                   Race Mode
                 </TabsTrigger>
+                <TabsTrigger value="tree" className="gap-2">
+                  <Network className="h-4 w-4" />
+                  Tree Structures
+                </TabsTrigger>
               </TabsList>
             </div>
 
@@ -78,6 +83,18 @@ const Visualizer = () => {
               </div>
               
               <RaceMode isRacing={isRacing} onRaceComplete={() => setTimeout(() => setIsRacing(false), 3000)} />
+            </TabsContent>
+
+            <TabsContent value="tree" className="mt-0 space-y-6">
+              <div className="text-center space-y-4 p-6 bg-card/50 rounded-lg border border-primary/20">
+                <h2 className="text-2xl font-bold">Visualize Tree Data Structures</h2>
+                <p className="text-muted-foreground max-w-2xl mx-auto">
+                  Build and visualize binary search trees, heaps, and AVL trees. 
+                  Enter your own values and watch the tree structure form step by step!
+                </p>
+              </div>
+              
+              <TreeVisualizer />
             </TabsContent>
           </Tabs>
         </div>

@@ -5,6 +5,8 @@ import { Slider } from "@/components/ui/slider";
 import { Play, Pause, RotateCcw, SkipForward, SkipBack, Sparkles, CheckCircle2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
+import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
 import { CodeEditor } from "./CodeEditor";
 import { ComplexityHeatmap } from "./ComplexityHeatmap";
 import { MemoryVisualizer } from "./MemoryVisualizer";
@@ -38,6 +40,7 @@ export const SortingVisualizer = () => {
   const [algorithm, setAlgorithm] = useState<Algorithm>("bubble");
   const [stats, setStats] = useState({ comparisons: 0, swaps: 0, timeComplexity: "O(n²)" });
   const [isComplete, setIsComplete] = useState(false);
+  const [customInput, setCustomInput] = useState("");
 
   const generateRandomArray = useCallback(() => {
     const newArray = Array.from({ length: arraySize }, () => Math.floor(Math.random() * 100) + 10);
@@ -47,6 +50,26 @@ export const SortingVisualizer = () => {
     setIsPlaying(false);
     setIsComplete(false);
   }, [arraySize]);
+
+  const setCustomArray = () => {
+    const values = customInput
+      .split(",")
+      .map((v) => parseInt(v.trim()))
+      .filter((v) => !isNaN(v) && v > 0 && v <= 100);
+    
+    if (values.length === 0) {
+      toast.error("Please enter valid numbers (1-100) separated by commas");
+      return;
+    }
+    
+    setArray(values);
+    setArraySize(values.length);
+    setSteps([]);
+    setCurrentStep(0);
+    setIsPlaying(false);
+    setIsComplete(false);
+    toast.success(`Custom array set with ${values.length} values`);
+  };
 
   useEffect(() => {
     generateRandomArray();
@@ -405,8 +428,27 @@ export const SortingVisualizer = () => {
             </div>
           </div>
 
+          <div className="space-y-2 border-t border-border pt-4">
+            <label className="text-sm font-medium">Custom Values (comma-separated):</label>
+            <div className="flex gap-2">
+              <Input
+                placeholder="e.g., 45,23,67,12,89,34"
+                value={customInput}
+                onChange={(e) => setCustomInput(e.target.value)}
+                className="flex-1"
+                disabled={isPlaying}
+              />
+              <Button onClick={setCustomArray} variant="outline" size="sm" disabled={isPlaying}>
+                Set Array
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Enter numbers 1-100, separated by commas
+            </p>
+          </div>
+
           <div className="flex gap-2 flex-wrap">
-            <Button 
+            <Button
               onClick={startVisualization} 
               disabled={isPlaying || steps.length > 0} 
               className="bg-gradient-primary hover:shadow-glow-primary transition-all hover:scale-105"
