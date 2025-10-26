@@ -31,6 +31,8 @@ export const TreeVisualizerAdvanced = () => {
   const [currentOperation, setCurrentOperation] = useState<string>("");
   const [operationLogs, setOperationLogs] = useState<string[]>([]);
   const [showLogs, setShowLogs] = useState(true);
+  const [bulkInput, setBulkInput] = useState("");
+  const [isConstructing, setIsConstructing] = useState(false);
   const svgRef = useRef<SVGSVGElement>(null);
 
   useEffect(() => {
@@ -71,6 +73,66 @@ export const TreeVisualizerAdvanced = () => {
   const addLog = (message: string) => {
     const timestamp = new Date().toLocaleTimeString();
     setOperationLogs(prev => [`[${timestamp}] ${message}`, ...prev].slice(0, 50));
+  };
+
+  const handleConstructTree = async () => {
+    if (!bulkInput.trim()) {
+      toast.error("Please enter values to construct the tree");
+      return;
+    }
+
+    setIsConstructing(true);
+    handleClear();
+    
+    await new Promise(resolve => setTimeout(resolve, 300));
+
+    const values = bulkInput
+      .split(',')
+      .map(v => v.trim())
+      .filter(v => v !== '');
+
+    if (treeType === "trie") {
+      addLog(`Constructing Trie with ${values.length} words`);
+      for (let i = 0; i < values.length; i++) {
+        const word = values[i];
+        if (tree instanceof Trie) {
+          tree.insert(word);
+          addLog(`[${i + 1}/${values.length}] Inserted "${word}"`);
+          setTree({ ...tree } as any);
+          await new Promise(resolve => setTimeout(resolve, 1000 - animationSpeed[0] * 8));
+        }
+      }
+    } else {
+      const numbers = values
+        .map(v => parseFloat(v))
+        .filter(v => !isNaN(v));
+
+      if (numbers.length === 0) {
+        toast.error("Please enter valid numbers");
+        setIsConstructing(false);
+        return;
+      }
+
+      addLog(`Constructing ${treeType.toUpperCase()} with ${numbers.length} values: [${numbers.join(', ')}]`);
+
+      for (let i = 0; i < numbers.length; i++) {
+        const num = numbers[i];
+        if (tree instanceof Heap) {
+          tree.insert(num);
+          addLog(`[${i + 1}/${numbers.length}] Inserted ${num} into heap`);
+        } else if (tree && 'insert' in tree) {
+          (tree as BinarySearchTree | AVLTree | RedBlackTree).insert(num);
+          addLog(`[${i + 1}/${numbers.length}] Inserted ${num}`);
+        }
+        setTree({ ...tree } as any);
+        await new Promise(resolve => setTimeout(resolve, 1000 - animationSpeed[0] * 8));
+      }
+    }
+
+    setCurrentOperation(`CONSTRUCTED TREE WITH ${values.length} VALUES`);
+    toast.success(`Tree constructed with ${values.length} values!`);
+    setBulkInput("");
+    setIsConstructing(false);
   };
 
   const handleInsert = () => {
@@ -516,39 +578,90 @@ export const TreeVisualizerAdvanced = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Controls */}
+            {/* Bulk Construction Input */}
+            <motion.div
+              className="space-y-2"
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+            >
+              <label className="text-sm font-medium flex items-center gap-2">
+                <Network className="h-4 w-4 text-primary" />
+                Construct Tree from Values
+              </label>
+              <div className="flex gap-2">
+                <Input
+                  placeholder={treeType === "trie" ? "Enter words separated by commas (e.g., cat, dog, car)" : "Enter numbers separated by commas (e.g., 50, 30, 70, 20, 40)"}
+                  value={bulkInput}
+                  onChange={(e) => setBulkInput(e.target.value)}
+                  onKeyPress={(e) => e.key === "Enter" && !isConstructing && handleConstructTree()}
+                  disabled={isConstructing}
+                  className="flex-1"
+                />
+                <Button 
+                  onClick={handleConstructTree} 
+                  disabled={isConstructing}
+                  className="hover:scale-105 transition-transform whitespace-nowrap"
+                >
+                  {isConstructing ? (
+                    <>
+                      <motion.div
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                        className="h-4 w-4 border-2 border-current border-t-transparent rounded-full mr-2"
+                      />
+                      Building...
+                    </>
+                  ) : (
+                    <>
+                      <Play className="h-4 w-4 mr-2" />
+                      Construct Tree
+                    </>
+                  )}
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {treeType === "trie" 
+                  ? "Enter multiple words separated by commas to build the Trie at once"
+                  : "Enter multiple numbers separated by commas to build the tree step-by-step"}
+              </p>
+            </motion.div>
+
+            {/* Single Value Controls */}
             <motion.div 
               className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.2 }}
             >
-            <Select value={treeType} onValueChange={(v: TreeType) => setTreeType(v)}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="bst">Binary Search Tree</SelectItem>
-                <SelectItem value="avl">AVL Tree</SelectItem>
-                <SelectItem value="redblack">Red-Black Tree</SelectItem>
-                <SelectItem value="maxheap">Max Heap</SelectItem>
-                <SelectItem value="minheap">Min Heap</SelectItem>
-                <SelectItem value="trie">Trie</SelectItem>
-              </SelectContent>
-            </Select>
+              <Select value={treeType} onValueChange={(v: TreeType) => setTreeType(v)} disabled={isConstructing}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="bst">Binary Search Tree</SelectItem>
+                  <SelectItem value="avl">AVL Tree</SelectItem>
+                  <SelectItem value="redblack">Red-Black Tree</SelectItem>
+                  <SelectItem value="maxheap">Max Heap</SelectItem>
+                  <SelectItem value="minheap">Min Heap</SelectItem>
+                  <SelectItem value="trie">Trie</SelectItem>
+                </SelectContent>
+              </Select>
 
-            <Input
-              placeholder={treeType === "trie" ? "Enter word" : "Enter number"}
-              value={value}
-              onChange={(e) => setValue(e.target.value)}
-              onKeyPress={(e) => e.key === "Enter" && handleInsert()}
-            />
+              <Input
+                placeholder={treeType === "trie" ? "Single word" : "Single number"}
+                value={value}
+                onChange={(e) => setValue(e.target.value)}
+                onKeyPress={(e) => e.key === "Enter" && !isConstructing && handleInsert()}
+                disabled={isConstructing}
+              />
 
               <div className="flex gap-2">
                 <Button 
                   onClick={handleInsert} 
                   size="sm" 
                   className="flex-1 hover:scale-105 transition-transform"
+                  disabled={isConstructing}
                 >
                   <Play className="h-3 w-3 mr-1" />
                   Insert
@@ -558,6 +671,7 @@ export const TreeVisualizerAdvanced = () => {
                   size="sm" 
                   variant="secondary" 
                   className="flex-1 hover:scale-105 transition-transform"
+                  disabled={isConstructing}
                 >
                   Delete
                 </Button>
@@ -569,6 +683,7 @@ export const TreeVisualizerAdvanced = () => {
                   size="sm" 
                   variant="outline" 
                   className="flex-1 hover:scale-105 transition-transform"
+                  disabled={isConstructing}
                 >
                   <Search className="h-3 w-3 mr-1" />
                   Search
@@ -578,6 +693,7 @@ export const TreeVisualizerAdvanced = () => {
                   size="sm" 
                   variant="destructive" 
                   className="flex-1 hover:scale-105 transition-transform"
+                  disabled={isConstructing}
                 >
                   <Trash2 className="h-3 w-3" />
                 </Button>
