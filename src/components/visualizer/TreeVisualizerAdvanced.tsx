@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
-import { Network, Play, Trash2, Search, Moon, Sun, Code2 } from "lucide-react";
+import { Network, Play, Trash2, Search, Moon, Sun, Code2, History } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { BinarySearchTree } from "@/lib/trees/BinarySearchTree";
 import { AVLTree } from "@/lib/trees/AVLTree";
 import { RedBlackTree } from "@/lib/trees/RedBlackTree";
@@ -27,6 +29,8 @@ export const TreeVisualizerAdvanced = () => {
   const [traversalResult, setTraversalResult] = useState<(number | string)[]>([]);
   const [showCode, setShowCode] = useState(true);
   const [currentOperation, setCurrentOperation] = useState<string>("");
+  const [operationLogs, setOperationLogs] = useState<string[]>([]);
+  const [showLogs, setShowLogs] = useState(true);
   const svgRef = useRef<SVGSVGElement>(null);
 
   useEffect(() => {
@@ -64,6 +68,11 @@ export const TreeVisualizerAdvanced = () => {
     setTraversalResult([]);
   };
 
+  const addLog = (message: string) => {
+    const timestamp = new Date().toLocaleTimeString();
+    setOperationLogs(prev => [`[${timestamp}] ${message}`, ...prev].slice(0, 50));
+  };
+
   const handleInsert = () => {
     if (!value.trim()) return;
     
@@ -76,12 +85,15 @@ export const TreeVisualizerAdvanced = () => {
     if (tree instanceof Heap) {
       tree.insert(val as number);
       setCurrentOperation(`INSERT ${val}`);
+      addLog(`Inserted ${val} into ${treeType === "maxheap" ? "Max" : "Min"} Heap`);
     } else if (tree instanceof Trie) {
       tree.insert(val as string);
       setCurrentOperation(`INSERT "${val}"`);
+      addLog(`Inserted word "${val}" into Trie`);
     } else if (tree) {
       tree.insert(val);
       setCurrentOperation(`INSERT ${val}`);
+      addLog(`Inserted ${val} into ${treeType.toUpperCase()}`);
     }
 
     setTree({ ...tree } as any);
@@ -97,12 +109,15 @@ export const TreeVisualizerAdvanced = () => {
     if (tree instanceof Heap) {
       tree.delete();
       setCurrentOperation("DELETE ROOT");
+      addLog(`Deleted root from ${treeType === "maxheap" ? "Max" : "Min"} Heap`);
     } else if (tree instanceof Trie) {
       tree.delete(val as string);
       setCurrentOperation(`DELETE "${val}"`);
+      addLog(`Deleted word "${val}" from Trie`);
     } else if (tree) {
       tree.delete(val);
       setCurrentOperation(`DELETE ${val}`);
+      addLog(`Deleted ${val} from ${treeType.toUpperCase()}`);
     }
 
     setTree({ ...tree } as any);
@@ -118,6 +133,7 @@ export const TreeVisualizerAdvanced = () => {
     let found = false;
     if (tree instanceof Trie) {
       found = tree.search(val as string);
+      addLog(`Searched for "${val}" in Trie: ${found ? "Found" : "Not found"}`);
     } else if (tree && !(tree instanceof Heap)) {
       const node = tree.search(val);
       found = node !== null;
@@ -125,6 +141,7 @@ export const TreeVisualizerAdvanced = () => {
         setHighlightedNodes(new Set([node.id]));
         setTimeout(() => setHighlightedNodes(new Set()), 2000);
       }
+      addLog(`Searched for ${val} in ${treeType.toUpperCase()}: ${found ? "Found" : "Not found"}`);
     }
 
     setCurrentOperation(`SEARCH ${val}`);
@@ -141,18 +158,22 @@ export const TreeVisualizerAdvanced = () => {
       case "inorder":
         result = tree.inorder();
         setCurrentOperation("INORDER TRAVERSAL");
+        addLog(`Performed Inorder Traversal: ${result.join(" → ")}`);
         break;
       case "preorder":
         result = tree.preorder();
         setCurrentOperation("PREORDER TRAVERSAL");
+        addLog(`Performed Preorder Traversal: ${result.join(" → ")}`);
         break;
       case "postorder":
         result = tree.postorder();
         setCurrentOperation("POSTORDER TRAVERSAL");
+        addLog(`Performed Postorder Traversal: ${result.join(" → ")}`);
         break;
       case "levelorder":
         result = tree.levelorder();
         setCurrentOperation("LEVEL ORDER TRAVERSAL");
+        addLog(`Performed Level Order Traversal: ${result.join(" → ")}`);
         break;
     }
 
@@ -172,6 +193,8 @@ export const TreeVisualizerAdvanced = () => {
   const handleClear = () => {
     initializeTree(treeType);
     setCurrentOperation("CLEAR");
+    setOperationLogs([]);
+    addLog(`Cleared ${treeType.toUpperCase()}`);
     toast.info("Tree cleared");
   };
 
@@ -237,7 +260,7 @@ export const TreeVisualizerAdvanced = () => {
       .attr("transform", (d: any) => `translate(${d.x},${d.y})`);
 
     nodes.append("circle")
-      .attr("r", 25)
+      .attr("r", 0)
       .attr("fill", (d: any) => {
         if (highlightedNodes.has(d.data.id)) return "hsl(var(--chart-2))";
         if (d.data.color === "red") return "hsl(0 84% 60%)";
@@ -246,7 +269,10 @@ export const TreeVisualizerAdvanced = () => {
       })
       .attr("stroke", isDarkMode ? "hsl(var(--border))" : "hsl(var(--primary-foreground))")
       .attr("stroke-width", 2)
-      .style("transition", "all 0.3s ease");
+      .style("filter", "drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1))")
+      .transition()
+      .duration(500)
+      .attr("r", 25);
 
     nodes.append("text")
       .attr("dy", "0.35em")
@@ -254,7 +280,12 @@ export const TreeVisualizerAdvanced = () => {
       .attr("fill", (d: any) => d.data.color === "black" ? "white" : "hsl(var(--primary-foreground))")
       .style("font-weight", "bold")
       .style("font-size", "14px")
-      .text((d: any) => d.data.value);
+      .style("opacity", 0)
+      .text((d: any) => d.data.value)
+      .transition()
+      .delay(300)
+      .duration(300)
+      .style("opacity", 1);
   };
 
   const visualizeHeap = (g: any, heap: Heap, width: number, height: number) => {
@@ -290,14 +321,19 @@ export const TreeVisualizerAdvanced = () => {
           .attr("stroke-width", 2);
       }
 
-      // Draw node
+      // Draw node with animation
       g.append("circle")
         .attr("cx", x)
         .attr("cy", y)
-        .attr("r", nodeRadius)
+        .attr("r", 0)
         .attr("fill", "hsl(var(--chart-1))")
         .attr("stroke", isDarkMode ? "hsl(var(--border))" : "hsl(var(--primary-foreground))")
-        .attr("stroke-width", 2);
+        .attr("stroke-width", 2)
+        .style("filter", "drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1))")
+        .transition()
+        .duration(500)
+        .delay(index * 50)
+        .attr("r", nodeRadius);
 
       g.append("text")
         .attr("x", x)
@@ -307,7 +343,12 @@ export const TreeVisualizerAdvanced = () => {
         .attr("fill", "hsl(var(--primary-foreground))")
         .style("font-weight", "bold")
         .style("font-size", "14px")
-        .text(value);
+        .style("opacity", 0)
+        .text(value)
+        .transition()
+        .delay(index * 50 + 300)
+        .duration(300)
+        .style("opacity", 1);
     });
   };
 
@@ -332,10 +373,15 @@ export const TreeVisualizerAdvanced = () => {
       g.append("rect")
         .attr("x", x - 5)
         .attr("y", y - 20)
-        .attr("width", word.length * 10 + 10)
+        .attr("width", 0)
         .attr("height", 30)
         .attr("fill", "hsl(var(--primary))")
-        .attr("rx", 5);
+        .attr("rx", 5)
+        .style("filter", "drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1))")
+        .transition()
+        .duration(400)
+        .delay(index * 100)
+        .attr("width", word.length * 10 + 10);
 
       g.append("text")
         .attr("x", x)
@@ -343,7 +389,12 @@ export const TreeVisualizerAdvanced = () => {
         .attr("fill", "hsl(var(--primary-foreground))")
         .style("font-size", "14px")
         .style("font-weight", "bold")
-        .text(word);
+        .style("opacity", 0)
+        .text(word)
+        .transition()
+        .delay(index * 100 + 200)
+        .duration(300)
+        .style("opacity", 1);
     });
 
     if (words.length === 0) {
@@ -417,34 +468,61 @@ export const TreeVisualizerAdvanced = () => {
 
   return (
     <div className="space-y-4">
-      <Card className="border-primary/20">
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Network className="h-5 w-5 text-primary" />
-              Advanced Tree Visualizer
-            </div>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowCode(!showCode)}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <Card className="border-primary/20 backdrop-blur-sm bg-card/50">
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              <motion.div 
+                className="flex items-center gap-2"
+                initial={{ x: -20 }}
+                animate={{ x: 0 }}
+                transition={{ duration: 0.3 }}
               >
-                <Code2 className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsDarkMode(!isDarkMode)}
-              >
-                {isDarkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-              </Button>
-            </div>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Controls */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                <Network className="h-5 w-5 text-primary" />
+                <span className="bg-gradient-to-r from-primary to-chart-2 bg-clip-text text-transparent">
+                  Tree Visualizer
+                </span>
+              </motion.div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowLogs(!showLogs)}
+                  className="hover:scale-105 transition-transform"
+                >
+                  <History className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowCode(!showCode)}
+                  className="hover:scale-105 transition-transform"
+                >
+                  <Code2 className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsDarkMode(!isDarkMode)}
+                  className="hover:scale-105 transition-transform"
+                >
+                  {isDarkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                </Button>
+              </div>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Controls */}
+            <motion.div 
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.2 }}
+            >
             <Select value={treeType} onValueChange={(v: TreeType) => setTreeType(v)}>
               <SelectTrigger>
                 <SelectValue />
@@ -466,26 +544,45 @@ export const TreeVisualizerAdvanced = () => {
               onKeyPress={(e) => e.key === "Enter" && handleInsert()}
             />
 
-            <div className="flex gap-2">
-              <Button onClick={handleInsert} size="sm" className="flex-1">
-                <Play className="h-3 w-3 mr-1" />
-                Insert
-              </Button>
-              <Button onClick={handleDelete} size="sm" variant="secondary" className="flex-1">
-                Delete
-              </Button>
-            </div>
+              <div className="flex gap-2">
+                <Button 
+                  onClick={handleInsert} 
+                  size="sm" 
+                  className="flex-1 hover:scale-105 transition-transform"
+                >
+                  <Play className="h-3 w-3 mr-1" />
+                  Insert
+                </Button>
+                <Button 
+                  onClick={handleDelete} 
+                  size="sm" 
+                  variant="secondary" 
+                  className="flex-1 hover:scale-105 transition-transform"
+                >
+                  Delete
+                </Button>
+              </div>
 
-            <div className="flex gap-2">
-              <Button onClick={handleSearch} size="sm" variant="outline" className="flex-1">
-                <Search className="h-3 w-3 mr-1" />
-                Search
-              </Button>
-              <Button onClick={handleClear} size="sm" variant="destructive" className="flex-1">
-                <Trash2 className="h-3 w-3" />
-              </Button>
-            </div>
-          </div>
+              <div className="flex gap-2">
+                <Button 
+                  onClick={handleSearch} 
+                  size="sm" 
+                  variant="outline" 
+                  className="flex-1 hover:scale-105 transition-transform"
+                >
+                  <Search className="h-3 w-3 mr-1" />
+                  Search
+                </Button>
+                <Button 
+                  onClick={handleClear} 
+                  size="sm" 
+                  variant="destructive" 
+                  className="flex-1 hover:scale-105 transition-transform"
+                >
+                  <Trash2 className="h-3 w-3" />
+                </Button>
+              </div>
+            </motion.div>
 
           {/* Speed Control */}
           <div className="space-y-2">
@@ -499,86 +596,180 @@ export const TreeVisualizerAdvanced = () => {
             />
           </div>
 
-          {/* Traversal Buttons */}
-          {!(tree instanceof Heap) && !(tree instanceof Trie) && (
-            <div className="flex flex-wrap gap-2">
-              <Button onClick={() => handleTraversal("inorder")} size="sm" variant="outline">
-                Inorder
-              </Button>
-              <Button onClick={() => handleTraversal("preorder")} size="sm" variant="outline">
-                Preorder
-              </Button>
-              <Button onClick={() => handleTraversal("postorder")} size="sm" variant="outline">
-                Postorder
-              </Button>
-              <Button onClick={() => handleTraversal("levelorder")} size="sm" variant="outline">
-                Level Order
-              </Button>
-            </div>
-          )}
+            {/* Traversal Buttons */}
+            {!(tree instanceof Heap) && !(tree instanceof Trie) && (
+              <motion.div 
+                className="flex flex-wrap gap-2"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+              >
+                <Button 
+                  onClick={() => handleTraversal("inorder")} 
+                  size="sm" 
+                  variant="outline"
+                  className="hover:scale-105 transition-transform"
+                >
+                  Inorder
+                </Button>
+                <Button 
+                  onClick={() => handleTraversal("preorder")} 
+                  size="sm" 
+                  variant="outline"
+                  className="hover:scale-105 transition-transform"
+                >
+                  Preorder
+                </Button>
+                <Button 
+                  onClick={() => handleTraversal("postorder")} 
+                  size="sm" 
+                  variant="outline"
+                  className="hover:scale-105 transition-transform"
+                >
+                  Postorder
+                </Button>
+                <Button 
+                  onClick={() => handleTraversal("levelorder")} 
+                  size="sm" 
+                  variant="outline"
+                  className="hover:scale-105 transition-transform"
+                >
+                  Level Order
+                </Button>
+              </motion.div>
+            )}
 
-          {/* Main Layout */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            {/* Visualization Canvas */}
-            <div className={`${showCode ? 'lg:col-span-2' : 'lg:col-span-3'} bg-muted/30 rounded-lg border border-primary/10 p-4`}>
-              <svg
-                ref={svgRef}
-                width="100%"
-                height="500"
-                className="w-full"
-                style={{ background: isDarkMode ? 'hsl(var(--muted))' : 'hsl(var(--background))' }}
-              />
-            </div>
+            {/* Main Layout */}
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+              {/* Visualization Canvas */}
+              <motion.div 
+                className={`${(showCode || showLogs) ? 'lg:col-span-3' : 'lg:col-span-4'} bg-gradient-to-br from-muted/30 to-muted/10 rounded-xl border border-primary/20 p-4 shadow-lg`}
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ delay: 0.4 }}
+              >
+                <svg
+                  ref={svgRef}
+                  width="100%"
+                  height="500"
+                  className="w-full rounded-lg"
+                  style={{ 
+                    background: isDarkMode 
+                      ? 'hsl(var(--muted))' 
+                      : 'linear-gradient(135deg, hsl(var(--background)) 0%, hsl(var(--muted)) 100%)' 
+                  }}
+                />
+              </motion.div>
 
-            {/* Code Panel */}
-            {showCode && (
-              <div className="space-y-4">
-                <Card className="border-primary/10">
-                  <CardHeader>
-                    <CardTitle className="text-sm">Pseudocode</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <pre className="text-xs bg-muted/50 p-3 rounded overflow-auto max-h-[200px]">
-                      {getPseudocode()}
-                    </pre>
-                  </CardContent>
-                </Card>
+              {/* Side Panel */}
+              {(showCode || showLogs) && (
+                <motion.div 
+                  className="space-y-4"
+                  initial={{ x: 20, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  transition={{ delay: 0.5 }}
+                >
+                  {showLogs && (
+                    <Card className="border-primary/10 backdrop-blur-sm bg-card/80">
+                      <CardHeader>
+                        <CardTitle className="text-sm flex items-center gap-2">
+                          <History className="h-4 w-4 text-primary" />
+                          Operation Logs
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <ScrollArea className="h-[200px]">
+                          <AnimatePresence>
+                            {operationLogs.length === 0 ? (
+                              <p className="text-xs text-muted-foreground">No operations yet</p>
+                            ) : (
+                              <div className="space-y-1">
+                                {operationLogs.map((log, idx) => (
+                                  <motion.div
+                                    key={idx}
+                                    initial={{ opacity: 0, x: -10 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    exit={{ opacity: 0, x: 10 }}
+                                    transition={{ duration: 0.2 }}
+                                    className="text-xs font-mono bg-muted/50 p-2 rounded border-l-2 border-primary/50"
+                                  >
+                                    {log}
+                                  </motion.div>
+                                ))}
+                              </div>
+                            )}
+                          </AnimatePresence>
+                        </ScrollArea>
+                      </CardContent>
+                    </Card>
+                  )}
 
-                {traversalResult.length > 0 && (
-                  <Card className="border-primary/10">
+                  {showCode && (
+                    <Card className="border-primary/10 backdrop-blur-sm bg-card/80">
+                      <CardHeader>
+                        <CardTitle className="text-sm flex items-center gap-2">
+                          <Code2 className="h-4 w-4 text-primary" />
+                          Pseudocode
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <pre className="text-xs bg-muted/50 p-3 rounded overflow-auto max-h-[180px] font-mono">
+                          {getPseudocode()}
+                        </pre>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {traversalResult.length > 0 && (
+                    <motion.div
+                      initial={{ scale: 0.9, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <Card className="border-primary/10 backdrop-blur-sm bg-card/80">
+                        <CardHeader>
+                          <CardTitle className="text-sm">Traversal Result</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="flex flex-wrap gap-2">
+                            {traversalResult.map((val, idx) => (
+                              <motion.span
+                                key={idx}
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                transition={{ delay: idx * 0.05 }}
+                                className="px-3 py-1 bg-gradient-to-r from-primary to-chart-2 text-primary-foreground rounded-full text-sm font-medium shadow-md"
+                              >
+                                {val}
+                              </motion.span>
+                            ))}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  )}
+
+                  <Card className="border-primary/10 backdrop-blur-sm bg-card/80">
                     <CardHeader>
-                      <CardTitle className="text-sm">Traversal Result</CardTitle>
+                      <CardTitle className="text-sm">Current Operation</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="flex flex-wrap gap-2">
-                        {traversalResult.map((val, idx) => (
-                          <span
-                            key={idx}
-                            className="px-3 py-1 bg-primary text-primary-foreground rounded-full text-sm font-medium"
-                          >
-                            {val}
-                          </span>
-                        ))}
-                      </div>
+                      <motion.p 
+                        key={currentOperation}
+                        initial={{ opacity: 0, y: 5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="text-sm font-mono text-primary font-bold"
+                      >
+                        {currentOperation || "No operation yet"}
+                      </motion.p>
                     </CardContent>
                   </Card>
-                )}
-
-                <Card className="border-primary/10">
-                  <CardHeader>
-                    <CardTitle className="text-sm">Current Operation</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm font-mono text-primary">
-                      {currentOperation || "No operation yet"}
-                    </p>
-                  </CardContent>
-                </Card>
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+                </motion.div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
     </div>
   );
 };
