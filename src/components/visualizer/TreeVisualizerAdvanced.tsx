@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
-import { Network, Play, Trash2, Search, Moon, Sun, Code2, History } from "lucide-react";
+import { Network, Play, Trash2, Search, Moon, Sun, Code2, History, Maximize2, Minimize2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { BinarySearchTree } from "@/lib/trees/BinarySearchTree";
@@ -33,6 +33,7 @@ export const TreeVisualizerAdvanced = () => {
   const [showLogs, setShowLogs] = useState(true);
   const [bulkInput, setBulkInput] = useState("");
   const [isConstructing, setIsConstructing] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const svgRef = useRef<SVGSVGElement>(null);
 
   useEffect(() => {
@@ -43,7 +44,7 @@ export const TreeVisualizerAdvanced = () => {
     if (tree) {
       visualizeTree();
     }
-  }, [tree, highlightedNodes, isDarkMode]);
+  }, [tree, highlightedNodes, isDarkMode, isFullscreen]);
 
   const initializeTree = (type: TreeType) => {
     switch (type) {
@@ -266,8 +267,8 @@ export const TreeVisualizerAdvanced = () => {
     const svg = d3.select(svgRef.current);
     svg.selectAll("*").remove();
 
-    const width = 900;
-    const height = 500;
+    const width = isFullscreen ? window.innerWidth - 100 : Math.min(1200, window.innerWidth - 100);
+    const height = isFullscreen ? window.innerHeight - 200 : 700;
     const margin = { top: 40, right: 40, bottom: 40, left: 40 };
 
     const g = svg.append("g")
@@ -553,6 +554,15 @@ export const TreeVisualizerAdvanced = () => {
                 <Button
                   variant="outline"
                   size="sm"
+                  onClick={() => setIsFullscreen(!isFullscreen)}
+                  className="hover:scale-105 transition-transform"
+                  title={isFullscreen ? "Exit fullscreen" : "Fullscreen view"}
+                >
+                  {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={() => setShowLogs(!showLogs)}
                   className="hover:scale-105 transition-transform"
                 >
@@ -756,10 +766,10 @@ export const TreeVisualizerAdvanced = () => {
             )}
 
             {/* Main Layout */}
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+            <div className={`grid grid-cols-1 ${isFullscreen ? 'lg:grid-cols-1' : 'lg:grid-cols-4'} gap-4`}>
               {/* Visualization Canvas */}
               <motion.div 
-                className={`${(showCode || showLogs) ? 'lg:col-span-3' : 'lg:col-span-4'} bg-gradient-to-br from-muted/30 to-muted/10 rounded-xl border border-primary/20 p-4 shadow-lg`}
+                className={`${isFullscreen ? 'lg:col-span-1' : (showCode || showLogs) ? 'lg:col-span-3' : 'lg:col-span-4'} bg-gradient-to-br from-muted/30 to-muted/10 rounded-xl border border-primary/20 p-4 shadow-lg ${isFullscreen ? 'min-h-[calc(100vh-16rem)]' : ''}`}
                 initial={{ scale: 0.95, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ delay: 0.4 }}
@@ -767,7 +777,7 @@ export const TreeVisualizerAdvanced = () => {
                 <svg
                   ref={svgRef}
                   width="100%"
-                  height="500"
+                  height={isFullscreen ? "calc(100vh - 18rem)" : "700"}
                   className="w-full rounded-lg"
                   style={{ 
                     background: isDarkMode 
@@ -778,7 +788,7 @@ export const TreeVisualizerAdvanced = () => {
               </motion.div>
 
               {/* Side Panel */}
-              {(showCode || showLogs) && (
+              {!isFullscreen && (showCode || showLogs) && (
                 <motion.div 
                   className="space-y-4"
                   initial={{ x: 20, opacity: 0 }}
