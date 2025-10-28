@@ -1,11 +1,21 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Play } from "lucide-react";
+import { ArrowRight, Play, LogIn } from "lucide-react";
 import heroImage from "@/assets/hero-algorithm-bg.jpg";
 
 const Hero = () => {
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
+      {/* Login Button */}
+      <div className="absolute top-6 right-6 z-20">
+        <Link to="/auth">
+          <Button variant="outline" className="backdrop-blur-sm border-primary/30 hover:bg-primary/10">
+            <LogIn className="h-4 w-4 mr-2" />
+            Login
+          </Button>
+        </Link>
+      </div>
+
       {/* Background Image with Overlay */}
       <div className="absolute inset-0 z-0">
         <img
