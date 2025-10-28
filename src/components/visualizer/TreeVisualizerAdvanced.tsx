@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
-import { Network, Play, Trash2, Search, Moon, Sun, Code2, History, Maximize2, Minimize2 } from "lucide-react";
+import { Network, Play, Trash2, Search, Moon, Sun, Code2, History, Maximize2, Minimize2, LogOut, User } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { BinarySearchTree } from "@/lib/trees/BinarySearchTree";
@@ -14,12 +15,16 @@ import { Heap } from "@/lib/trees/Heap";
 import { Trie } from "@/lib/trees/Trie";
 import { TreeNode } from "@/lib/trees/TreeNode";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import type { User as SupabaseUser } from "@supabase/supabase-js";
 import * as d3 from "d3";
 
 type TreeType = "bst" | "avl" | "redblack" | "maxheap" | "minheap" | "trie";
 type TraversalType = "inorder" | "preorder" | "postorder" | "levelorder";
 
 export const TreeVisualizerAdvanced = () => {
+  const navigate = useNavigate();
+  const [user, setUser] = useState<SupabaseUser | null>(null);
   const [value, setValue] = useState("");
   const [treeType, setTreeType] = useState<TreeType>("bst");
   const [tree, setTree] = useState<BinarySearchTree | AVLTree | RedBlackTree | Heap | Trie | null>(null);
@@ -35,6 +40,44 @@ export const TreeVisualizerAdvanced = () => {
   const [isConstructing, setIsConstructing] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const svgRef = useRef<SVGSVGElement>(null);
+
+  // Check authentication
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUser(session?.user ?? null);
+    };
+    checkAuth();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Save operation to database
+  const saveOperation = async (operationType: string, operationData: any, codeInput?: string) => {
+    if (!user) return;
+
+    try {
+      await supabase.from('user_operations').insert({
+        user_id: user.id,
+        tree_type: treeType,
+        operation_type: operationType,
+        operation_data: operationData,
+        code_input: codeInput
+      });
+    } catch (error: any) {
+      console.error("Failed to save operation:", error);
+    }
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    toast.success("Logged out successfully");
+    navigate("/auth");
+  };
 
   useEffect(() => {
     initializeTree(treeType);
@@ -91,6 +134,8 @@ export const TreeVisualizerAdvanced = () => {
       .split(',')
       .map(v => v.trim())
       .filter(v => v !== '');
+
+    saveOperation("construct", { values });
 
     if (treeType === "trie") {
       addLog(`Constructing Trie with ${values.length} words`);
@@ -149,14 +194,17 @@ export const TreeVisualizerAdvanced = () => {
       tree.insert(val as number);
       setCurrentOperation(`INSERT ${val}`);
       addLog(`Inserted ${val} into ${treeType === "maxheap" ? "Max" : "Min"} Heap`);
+      saveOperation("insert", { value: val });
     } else if (tree instanceof Trie) {
       tree.insert(val as string);
       setCurrentOperation(`INSERT "${val}"`);
       addLog(`Inserted word "${val}" into Trie`);
+      saveOperation("insert", { value: val });
     } else if (tree) {
       tree.insert(val);
       setCurrentOperation(`INSERT ${val}`);
       addLog(`Inserted ${val} into ${treeType.toUpperCase()}`);
+      saveOperation("insert", { value: val });
     }
 
     setTree({ ...tree } as any);
@@ -173,14 +221,17 @@ export const TreeVisualizerAdvanced = () => {
       tree.delete();
       setCurrentOperation("DELETE ROOT");
       addLog(`Deleted root from ${treeType === "maxheap" ? "Max" : "Min"} Heap`);
+      saveOperation("delete", { value: "root" });
     } else if (tree instanceof Trie) {
       tree.delete(val as string);
       setCurrentOperation(`DELETE "${val}"`);
       addLog(`Deleted word "${val}" from Trie`);
+      saveOperation("delete", { value: val });
     } else if (tree) {
       tree.delete(val);
       setCurrentOperation(`DELETE ${val}`);
       addLog(`Deleted ${val} from ${treeType.toUpperCase()}`);
+      saveOperation("delete", { value: val });
     }
 
     setTree({ ...tree } as any);
@@ -258,6 +309,7 @@ export const TreeVisualizerAdvanced = () => {
     setCurrentOperation("CLEAR");
     setOperationLogs([]);
     addLog(`Cleared ${treeType.toUpperCase()}`);
+    saveOperation("clear", {});
     toast.info("Tree cleared");
   };
 
@@ -551,6 +603,23 @@ export const TreeVisualizerAdvanced = () => {
                 </span>
               </motion.div>
               <div className="flex gap-2">
+                {user && (
+                  <>
+                    <div className="flex items-center gap-2 px-3 py-1 bg-primary/10 rounded-md border border-primary/20">
+                      <User className="h-4 w-4 text-primary" />
+                      <span className="text-sm text-primary">{user.email}</span>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleLogout}
+                      className="hover:scale-105 transition-transform"
+                      title="Logout"
+                    >
+                      <LogOut className="h-4 w-4" />
+                    </Button>
+                  </>
+                )}
                 <Button
                   variant="outline"
                   size="sm"
