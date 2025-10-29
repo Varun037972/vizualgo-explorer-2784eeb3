@@ -7,15 +7,17 @@ import { SortingVisualizer } from "@/components/visualizer/SortingVisualizer";
 import { RaceMode } from "@/components/visualizer/RaceMode";
 import { TreeVisualizer } from "@/components/visualizer/TreeVisualizer";
 import { TreeVisualizerAdvanced } from "@/components/visualizer/TreeVisualizerAdvanced";
+import AnimatedBackground from "@/components/AnimatedBackground";
 
 const Visualizer = () => {
   const [isRacing, setIsRacing] = useState(false);
   const [activeTab, setActiveTab] = useState("standard");
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background relative">
+      <AnimatedBackground />
       {/* Header */}
-      <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50 animate-fade-in-down">
+      <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50 animate-fade-in-down relative">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Link to="/">
@@ -41,7 +43,7 @@ const Visualizer = () => {
       </header>
 
       {/* Main Content */}
-      <div className="container mx-auto px-4 py-8 animate-fade-in-up">
+      <div className="container mx-auto px-4 py-8 animate-fade-in-up relative">
         <div className="mb-6">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
