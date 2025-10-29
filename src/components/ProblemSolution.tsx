@@ -1,12 +1,24 @@
 import { AlertTriangle, Lightbulb } from "lucide-react";
+import { useScrollAnimation } from "@/hooks/useScrollAnimation";
 
 const ProblemSolution = () => {
+  const headerAnimation = useScrollAnimation({ threshold: 0.2 });
+  const problemAnimation = useScrollAnimation({ threshold: 0.2 });
+  const solutionAnimation = useScrollAnimation({ threshold: 0.2 });
+  
   return (
     <section className="py-20 bg-card/30">
       <div className="container mx-auto px-4">
         <div className="max-w-5xl mx-auto">
           {/* Section Header */}
-          <div className="text-center mb-16 space-y-4">
+          <div 
+            ref={headerAnimation.ref}
+            className={`text-center mb-16 space-y-4 transition-all duration-700 ${
+              headerAnimation.isVisible 
+                ? 'opacity-100 translate-y-0' 
+                : 'opacity-0 translate-y-10'
+            }`}
+          >
             <h2 className="text-4xl md:text-5xl font-bold">
               Tired of <span className="text-destructive">Abstract Theory</span>?
             </h2>
@@ -18,7 +30,14 @@ const ProblemSolution = () => {
           {/* Problem & Solution Grid */}
           <div className="grid md:grid-cols-2 gap-8">
             {/* Problem Card */}
-            <div className="bg-card border border-destructive/20 rounded-2xl p-8 space-y-6 hover:border-destructive/40 transition-all">
+            <div 
+              ref={problemAnimation.ref}
+              className={`bg-card border border-destructive/20 rounded-2xl p-8 space-y-6 hover:border-destructive/40 transition-all duration-700 hover:-translate-y-2 ${
+                problemAnimation.isVisible 
+                  ? 'opacity-100 translate-x-0' 
+                  : 'opacity-0 -translate-x-10'
+              }`}
+            >
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-xl bg-destructive/20 flex items-center justify-center">
                   <AlertTriangle className="h-6 w-6 text-destructive" />
@@ -46,7 +65,14 @@ const ProblemSolution = () => {
             </div>
 
             {/* Solution Card */}
-            <div className="bg-gradient-to-br from-primary/10 to-secondary/10 border border-primary/30 rounded-2xl p-8 space-y-6 hover:border-primary/50 transition-all shadow-glow-primary">
+            <div 
+              ref={solutionAnimation.ref}
+              className={`bg-gradient-to-br from-primary/10 to-secondary/10 border border-primary/30 rounded-2xl p-8 space-y-6 hover:border-primary/50 transition-all duration-700 shadow-glow-primary hover:-translate-y-2 hover:scale-[1.02] ${
+                solutionAnimation.isVisible 
+                  ? 'opacity-100 translate-x-0' 
+                  : 'opacity-0 translate-x-10'
+              }`}
+            >
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-xl bg-gradient-primary flex items-center justify-center shadow-glow-primary">
                   <Lightbulb className="h-6 w-6 text-primary-foreground" />

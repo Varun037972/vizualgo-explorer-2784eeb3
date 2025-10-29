@@ -7,9 +7,12 @@ const Hero = () => {
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
       {/* Login Button */}
-      <div className="absolute top-6 right-6 z-20">
+      <div className="absolute top-6 right-6 z-20 animate-fade-in-down">
         <Link to="/auth">
-          <Button variant="outline" className="backdrop-blur-sm border-primary/30 hover:bg-primary/10">
+          <Button 
+            variant="outline" 
+            className="backdrop-blur-sm border-primary/30 hover:bg-primary/10 hover:scale-105 hover:shadow-glow-primary transition-all duration-300"
+          >
             <LogIn className="h-4 w-4 mr-2" />
             Login
           </Button>
@@ -89,8 +92,16 @@ const Hero = () => {
               { value: "Real-Time", label: "Execution" },
               { value: "100%", label: "Visual" },
             ].map((stat, index) => (
-              <div key={index} className="space-y-2">
-                <div className="text-3xl md:text-4xl font-bold text-primary">{stat.value}</div>
+              <div 
+                key={index} 
+                className="space-y-2 group cursor-pointer"
+                style={{ 
+                  animation: 'fade-in-up 0.6s ease-out',
+                  animationDelay: `${0.8 + index * 0.1}s`,
+                  animationFillMode: 'both'
+                }}
+              >
+                <div className="text-3xl md:text-4xl font-bold text-primary group-hover:scale-110 transition-transform duration-300">{stat.value}</div>
                 <div className="text-sm text-muted-foreground uppercase tracking-wide">{stat.label}</div>
               </div>
             ))}
