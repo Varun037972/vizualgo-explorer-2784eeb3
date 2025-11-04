@@ -28,6 +28,7 @@ export const TreeVisualizerAdvanced = () => {
   const [value, setValue] = useState("");
   const [treeType, setTreeType] = useState<TreeType>("bst");
   const [tree, setTree] = useState<BinarySearchTree | AVLTree | RedBlackTree | Heap | Trie | null>(null);
+  const [updateCounter, setUpdateCounter] = useState(0);
   const [animationSpeed, setAnimationSpeed] = useState([50]);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [highlightedNodes, setHighlightedNodes] = useState<Set<string>>(new Set());
@@ -40,6 +41,8 @@ export const TreeVisualizerAdvanced = () => {
   const [isConstructing, setIsConstructing] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const svgRef = useRef<SVGSVGElement>(null);
+
+  const forceUpdate = () => setUpdateCounter(prev => prev + 1);
 
   // Check authentication
   useEffect(() => {
@@ -87,7 +90,7 @@ export const TreeVisualizerAdvanced = () => {
     if (tree) {
       visualizeTree();
     }
-  }, [tree, highlightedNodes, isDarkMode, isFullscreen]);
+  }, [tree, highlightedNodes, isDarkMode, isFullscreen, updateCounter]);
 
   const initializeTree = (type: TreeType) => {
     switch (type) {
@@ -144,7 +147,7 @@ export const TreeVisualizerAdvanced = () => {
         if (tree instanceof Trie) {
           tree.insert(word);
           addLog(`[${i + 1}/${values.length}] Inserted "${word}"`);
-          setTree({ ...tree } as any);
+          forceUpdate();
           await new Promise(resolve => setTimeout(resolve, 1000 - animationSpeed[0] * 8));
         }
       }
@@ -170,7 +173,7 @@ export const TreeVisualizerAdvanced = () => {
           (tree as BinarySearchTree | AVLTree | RedBlackTree).insert(num);
           addLog(`[${i + 1}/${numbers.length}] Inserted ${num}`);
         }
-        setTree({ ...tree } as any);
+        forceUpdate();
         await new Promise(resolve => setTimeout(resolve, 1000 - animationSpeed[0] * 8));
       }
     }
@@ -207,7 +210,7 @@ export const TreeVisualizerAdvanced = () => {
       saveOperation("insert", { value: val });
     }
 
-    setTree({ ...tree } as any);
+    forceUpdate();
     setValue("");
     toast.success(`Inserted ${val}`);
   };
@@ -234,7 +237,7 @@ export const TreeVisualizerAdvanced = () => {
       saveOperation("delete", { value: val });
     }
 
-    setTree({ ...tree } as any);
+    forceUpdate();
     setValue("");
     toast.success(`Deleted ${val}`);
   };
@@ -265,7 +268,10 @@ export const TreeVisualizerAdvanced = () => {
   };
 
   const handleTraversal = async (type: TraversalType) => {
-    if (!tree || tree instanceof Heap || tree instanceof Trie) return;
+    if (!tree || tree instanceof Heap || tree instanceof Trie) {
+      toast.error("Traversal not available for this tree type");
+      return;
+    }
 
     let result: (number | string)[] = [];
     switch (type) {
@@ -292,6 +298,7 @@ export const TreeVisualizerAdvanced = () => {
     }
 
     setTraversalResult(result);
+    saveOperation("traversal", { type, result });
     
     // Animate traversal
     for (let i = 0; i < result.length; i++) {
