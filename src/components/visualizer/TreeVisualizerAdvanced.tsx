@@ -129,8 +129,37 @@ export const TreeVisualizerAdvanced = () => {
     }
 
     setIsConstructing(true);
-    handleClear();
     
+    // Clear operation logs and reset state
+    setOperationLogs([]);
+    setHighlightedNodes(new Set());
+    setTraversalResult([]);
+    setCurrentOperation("CONSTRUCTING TREE");
+    
+    // Reinitialize tree based on type
+    let newTree: BinarySearchTree | AVLTree | RedBlackTree | Heap | Trie | null = null;
+    switch (treeType) {
+      case "bst":
+        newTree = new BinarySearchTree();
+        break;
+      case "avl":
+        newTree = new AVLTree();
+        break;
+      case "redblack":
+        newTree = new RedBlackTree();
+        break;
+      case "maxheap":
+        newTree = new Heap(true);
+        break;
+      case "minheap":
+        newTree = new Heap(false);
+        break;
+      case "trie":
+        newTree = new Trie();
+        break;
+    }
+    
+    setTree(newTree);
     await new Promise(resolve => setTimeout(resolve, 300));
 
     const values = bulkInput
@@ -140,16 +169,14 @@ export const TreeVisualizerAdvanced = () => {
 
     saveOperation("construct", { values });
 
-    if (treeType === "trie") {
+    if (treeType === "trie" && newTree instanceof Trie) {
       addLog(`Constructing Trie with ${values.length} words`);
       for (let i = 0; i < values.length; i++) {
         const word = values[i];
-        if (tree instanceof Trie) {
-          tree.insert(word);
-          addLog(`[${i + 1}/${values.length}] Inserted "${word}"`);
-          forceUpdate();
-          await new Promise(resolve => setTimeout(resolve, 1000 - animationSpeed[0] * 8));
-        }
+        newTree.insert(word);
+        addLog(`[${i + 1}/${values.length}] Inserted "${word}"`);
+        forceUpdate();
+        await new Promise(resolve => setTimeout(resolve, 1000 - animationSpeed[0] * 8));
       }
     } else {
       const numbers = values
@@ -166,11 +193,11 @@ export const TreeVisualizerAdvanced = () => {
 
       for (let i = 0; i < numbers.length; i++) {
         const num = numbers[i];
-        if (tree instanceof Heap) {
-          tree.insert(num);
+        if (newTree instanceof Heap) {
+          newTree.insert(num);
           addLog(`[${i + 1}/${numbers.length}] Inserted ${num} into heap`);
-        } else if (tree && 'insert' in tree) {
-          (tree as BinarySearchTree | AVLTree | RedBlackTree).insert(num);
+        } else if (newTree && 'insert' in newTree) {
+          (newTree as BinarySearchTree | AVLTree | RedBlackTree).insert(num);
           addLog(`[${i + 1}/${numbers.length}] Inserted ${num}`);
         }
         forceUpdate();
