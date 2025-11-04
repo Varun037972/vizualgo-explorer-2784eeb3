@@ -343,7 +343,17 @@ export const TreeVisualizerAdvanced = () => {
   };
 
   const visualizeBinaryTree = (g: any, root: TreeNode | null, width: number, height: number) => {
-    if (!root) return;
+    if (!root) {
+      g.append("text")
+        .attr("x", width / 2)
+        .attr("y", height / 2)
+        .attr("text-anchor", "middle")
+        .attr("fill", "hsl(var(--muted-foreground))")
+        .style("font-size", "18px")
+        .style("font-weight", "500")
+        .text("Tree is empty. Add values to visualize.");
+      return;
+    }
 
     interface NodeWithPosition extends TreeNode {
       x?: number;
@@ -412,7 +422,17 @@ export const TreeVisualizerAdvanced = () => {
 
   const visualizeHeap = (g: any, heap: Heap, width: number, height: number) => {
     const arr = heap.getArray();
-    if (arr.length === 0) return;
+    if (arr.length === 0) {
+      g.append("text")
+        .attr("x", width / 2)
+        .attr("y", height / 2)
+        .attr("text-anchor", "middle")
+        .attr("fill", "hsl(var(--muted-foreground))")
+        .style("font-size", "18px")
+        .style("font-weight", "500")
+        .text("Heap is empty. Add values to visualize.");
+      return;
+    }
 
     const nodeRadius = 25;
     const levelHeight = 80;
@@ -525,8 +545,9 @@ export const TreeVisualizerAdvanced = () => {
         .attr("y", height / 2)
         .attr("text-anchor", "middle")
         .attr("fill", "hsl(var(--muted-foreground))")
-        .style("font-size", "16px")
-        .text("No words inserted yet");
+        .style("font-size", "18px")
+        .style("font-weight", "500")
+        .text("Trie is empty. Add words to visualize.");
     }
   };
 
