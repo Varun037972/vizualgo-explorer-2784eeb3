@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
-import { Play, Pause, RotateCcw, SkipForward, SkipBack, Sparkles, CheckCircle2 } from "lucide-react";
+import { Play, Pause, RotateCcw, SkipForward, SkipBack, Sparkles, CheckCircle2, Accessibility } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,11 @@ import { toast } from "sonner";
 import { CodeEditor } from "./CodeEditor";
 import { ComplexityHeatmap } from "./ComplexityHeatmap";
 import { MemoryVisualizer } from "./MemoryVisualizer";
+import { AlgorithmInfo } from "@/components/AlgorithmInfo";
+import { QuickStartExamples } from "@/components/QuickStartExamples";
+import { MetricsDashboard } from "@/components/MetricsDashboard";
+import { AccessibilityControls } from "@/components/AccessibilityControls";
+import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 
 interface Step {
   array: number[];
@@ -41,6 +46,17 @@ export const SortingVisualizer = () => {
   const [stats, setStats] = useState({ comparisons: 0, swaps: 0, timeComplexity: "O(n²)" });
   const [isComplete, setIsComplete] = useState(false);
   const [customInput, setCustomInput] = useState("");
+  const [startTime, setStartTime] = useState<number>(0);
+  const [elapsedTime, setElapsedTime] = useState<number>(0);
+
+  // Keyboard shortcuts
+  useKeyboardShortcuts({
+    onPlay: () => steps.length > 0 && !isPlaying && setIsPlaying(true),
+    onPause: () => isPlaying && setIsPlaying(false),
+    onStepForward: () => !isPlaying && currentStep < steps.length - 1 && setCurrentStep(prev => prev + 1),
+    onStepBackward: () => !isPlaying && currentStep > 0 && setCurrentStep(prev => prev - 1),
+    onReset: () => !isPlaying && generateRandomArray(),
+  });
 
   const generateRandomArray = useCallback(() => {
     const newArray = Array.from({ length: arraySize }, () => Math.floor(Math.random() * 100) + 10);
@@ -333,6 +349,8 @@ export const SortingVisualizer = () => {
   const startVisualization = () => {
     let sortSteps: Step[] = [];
     setIsComplete(false);
+    setStartTime(Date.now());
+    setElapsedTime(0);
     
     switch (algorithm) {
       case "bubble":
@@ -357,17 +375,34 @@ export const SortingVisualizer = () => {
     setIsPlaying(true);
   };
 
+  const handleQuickStartExample = (values: number[], algorithmType: string) => {
+    setArray(values);
+    setArraySize(values.length);
+    setAlgorithm(algorithmType as Algorithm);
+    setSteps([]);
+    setCurrentStep(0);
+    setIsPlaying(false);
+    setIsComplete(false);
+    toast.success(`Loaded ${algorithmType} sort example with ${values.length} values`);
+  };
+
   useEffect(() => {
     if (isPlaying && currentStep < steps.length - 1) {
       const timer = setTimeout(() => {
         setCurrentStep((prev) => prev + 1);
+        if (startTime > 0) {
+          setElapsedTime((Date.now() - startTime) / 1000);
+        }
       }, speed);
       return () => clearTimeout(timer);
     } else if (currentStep >= steps.length - 1 && steps.length > 0) {
       setIsPlaying(false);
       setIsComplete(true);
+      if (startTime > 0) {
+        setElapsedTime((Date.now() - startTime) / 1000);
+      }
     }
-  }, [isPlaying, currentStep, steps.length, speed]);
+  }, [isPlaying, currentStep, steps.length, speed, startTime]);
 
   const currentStepData = steps[currentStep] || { array, description: "Click Visualize to start" };
   const maxValue = Math.max(...array);
@@ -375,6 +410,15 @@ export const SortingVisualizer = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
+      {/* Accessibility Controls */}
+      <AccessibilityControls />
+
+      {/* Quick Start Examples */}
+      <QuickStartExamples onSelectExample={handleQuickStartExample} />
+
+      {/* Algorithm Information */}
+      <AlgorithmInfo algorithm={algorithm} />
+
       {/* Code Editor */}
       <CodeEditor onCodeChange={(code, lang) => console.log("Code updated:", lang)} />
 
@@ -602,54 +646,28 @@ export const SortingVisualizer = () => {
       </Card>
 
       {/* Advanced Analysis Panels */}
-      <div className="grid md:grid-cols-3 gap-4">
+      <div className="grid md:grid-cols-2 gap-4">
+        <MetricsDashboard
+          comparisons={stats.comparisons}
+          swaps={stats.swaps}
+          timeComplexity={stats.timeComplexity}
+          currentStep={currentStep}
+          totalSteps={steps.length}
+          elapsedTime={elapsedTime}
+        />
         <ComplexityHeatmap 
           comparisons={stats.comparisons} 
           swaps={stats.swaps} 
           isActive={steps.length > 0}
         />
-        <MemoryVisualizer 
-          arraySize={array.length}
-          currentStep={currentStep}
-          totalSteps={steps.length}
-          isActive={steps.length > 0}
-        />
-        <Card className="hover:border-primary/50 transition-all hover:shadow-glow-primary hover-scale">
-          <CardHeader>
-            <CardTitle className="text-lg text-muted-foreground">Performance Stats</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Comparisons</span>
-                <span className="text-2xl font-mono font-bold text-primary">
-                  {stats.comparisons.toLocaleString()}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Swaps</span>
-                <span className="text-2xl font-mono font-bold text-primary">
-                  {stats.swaps.toLocaleString()}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Array Size</span>
-                <span className="text-2xl font-mono font-bold text-primary">
-                  {array.length}
-                </span>
-              </div>
-            </div>
-            <div className="pt-3 border-t border-border">
-              <div className="text-center">
-                <p className="text-xs text-muted-foreground mb-1">Time Complexity</p>
-                <p className="text-3xl font-mono font-bold bg-gradient-primary bg-clip-text text-transparent">
-                  {stats.timeComplexity}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
       </div>
+
+      <MemoryVisualizer 
+        arraySize={array.length}
+        currentStep={currentStep}
+        totalSteps={steps.length}
+        isActive={steps.length > 0}
+      />
 
       {/* Original Stats Row (Deprecated - kept for reference) */}
       <div className="grid md:grid-cols-3 gap-4 hidden">

@@ -1,46 +1,25 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Code2, Flame, Network } from "lucide-react";
+import { ArrowLeft, Code2, Flame, Network, HelpCircle } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SortingVisualizer } from "@/components/visualizer/SortingVisualizer";
 import { RaceMode } from "@/components/visualizer/RaceMode";
 import { TreeVisualizer } from "@/components/visualizer/TreeVisualizer";
 import { TreeVisualizerAdvanced } from "@/components/visualizer/TreeVisualizerAdvanced";
 import AnimatedBackground from "@/components/AnimatedBackground";
+import { Navigation } from "@/components/Navigation";
+import { OnboardingTutorial } from "@/components/OnboardingTutorial";
 
 const Visualizer = () => {
   const [isRacing, setIsRacing] = useState(false);
   const [activeTab, setActiveTab] = useState("standard");
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   return (
     <div className="min-h-screen bg-background relative">
       <AnimatedBackground />
-      {/* Header */}
-      <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50 animate-fade-in-down relative">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link to="/">
-              <Button 
-                variant="ghost" 
-                size="sm"
-                className="hover:scale-105 hover:bg-primary/10 transition-all duration-300"
-              >
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to Home
-              </Button>
-            </Link>
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-gradient-primary flex items-center justify-center animate-glow-pulse">
-                <Code2 className="h-5 w-5 text-primary-foreground" />
-              </div>
-              <span className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent bg-[length:200%_auto] animate-gradient-shift">
-                Algorithm Visualizer
-              </span>
-            </div>
-          </div>
-        </div>
-      </header>
+      <Navigation />
 
       {/* Main Content */}
       <div className="container mx-auto px-4 py-8 animate-fade-in-up relative">
@@ -53,20 +32,31 @@ const Visualizer = () => {
                   Visualize algorithms with real code execution and performance analysis
                 </p>
               </div>
-              <TabsList className="w-fit">
-                <TabsTrigger value="standard" className="gap-2">
-                  <Code2 className="h-4 w-4" />
-                  Standard Mode
-                </TabsTrigger>
-                <TabsTrigger value="race" className="gap-2">
-                  <Flame className="h-4 w-4" />
-                  Race Mode
-                </TabsTrigger>
-                <TabsTrigger value="tree" className="gap-2">
-                  <Network className="h-4 w-4" />
-                  Tree Structures
-                </TabsTrigger>
-              </TabsList>
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowOnboarding(true)}
+                  className="gap-2"
+                >
+                  <HelpCircle className="h-4 w-4" />
+                  Tutorial
+                </Button>
+                <TabsList className="w-fit">
+                  <TabsTrigger value="standard" className="gap-2">
+                    <Code2 className="h-4 w-4" />
+                    Standard Mode
+                  </TabsTrigger>
+                  <TabsTrigger value="race" className="gap-2">
+                    <Flame className="h-4 w-4" />
+                    Race Mode
+                  </TabsTrigger>
+                  <TabsTrigger value="tree" className="gap-2">
+                    <Network className="h-4 w-4" />
+                    Tree Structures
+                  </TabsTrigger>
+                </TabsList>
+              </div>
             </div>
 
             <TabsContent value="standard" className="mt-0">
@@ -108,6 +98,7 @@ const Visualizer = () => {
           </Tabs>
         </div>
       </div>
+      <OnboardingTutorial open={showOnboarding} onClose={() => setShowOnboarding(false)} />
     </div>
   );
 };
