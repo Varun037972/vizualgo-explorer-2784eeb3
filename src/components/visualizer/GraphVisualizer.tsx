@@ -3,8 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Play, Pause, RotateCcw, Plus } from "lucide-react";
+import { Play, Pause, RotateCcw, Plus, MousePointer, Move } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
 import * as d3 from "d3";
 
 interface Node {
@@ -24,7 +26,8 @@ interface Edge {
   visited?: boolean;
 }
 
-type Algorithm = "bfs" | "dfs" | "dijkstra" | "astar";
+type Algorithm = "bfs" | "dfs" | "dijkstra" | "astar" | "kruskal" | "prim" | "floyd" | "bellman";
+type EditMode = "select" | "addNode" | "addEdge";
 
 export const GraphVisualizer = () => {
   const svgRef = useRef<SVGSVGElement>(null);
@@ -48,10 +51,53 @@ export const GraphVisualizer = () => {
   const [speed, setSpeed] = useState(50);
   const [currentStep, setCurrentStep] = useState(0);
   const [queue, setQueue] = useState<string[]>([]);
+  const [editMode, setEditMode] = useState<EditMode>("select");
+  const [selectedNode, setSelectedNode] = useState<string | null>(null);
+  const [mstEdges, setMstEdges] = useState<Edge[]>([]);
+  const [nextNodeId, setNextNodeId] = useState(6);
 
   useEffect(() => {
     visualizeGraph();
-  }, [nodes, edges]);
+  }, [nodes, edges, mstEdges]);
+
+  const handleSvgClick = (event: React.MouseEvent<SVGSVGElement>) => {
+    if (editMode !== "addNode") return;
+    
+    const svg = svgRef.current;
+    if (!svg) return;
+
+    const rect = svg.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+
+    const newNode: Node = {
+      id: String.fromCharCode(64 + nextNodeId),
+      x,
+      y,
+    };
+
+    setNodes([...nodes, newNode]);
+    setNextNodeId(nextNodeId + 1);
+    toast.success(`Node ${newNode.id} added`);
+  };
+
+  const handleNodeClick = (nodeId: string) => {
+    if (editMode === "addEdge") {
+      if (!selectedNode) {
+        setSelectedNode(nodeId);
+        toast.info(`Selected node ${nodeId}. Click another node to create edge.`);
+      } else if (selectedNode !== nodeId) {
+        const newEdge: Edge = {
+          source: selectedNode,
+          target: nodeId,
+          weight: Math.floor(Math.random() * 9) + 1,
+        };
+        setEdges([...edges, newEdge]);
+        setSelectedNode(null);
+        toast.success(`Edge created: ${selectedNode} → ${nodeId}`);
+      }
+    }
+  };
 
   const visualizeGraph = () => {
     if (!svgRef.current) return;
@@ -65,6 +111,10 @@ export const GraphVisualizer = () => {
     // Draw edges
     const edgeGroup = svg.append("g");
     edges.forEach(edge => {
+      const isMstEdge = mstEdges.some(
+        e => (e.source === edge.source && e.target === edge.target) ||
+             (e.source === edge.target && e.target === edge.source)
+      );
       const sourceNode = nodes.find(n => n.id === edge.source);
       const targetNode = nodes.find(n => n.id === edge.target);
       if (!sourceNode || !targetNode) return;
@@ -75,8 +125,8 @@ export const GraphVisualizer = () => {
         .attr("y1", sourceNode.y)
         .attr("x2", targetNode.x)
         .attr("y2", targetNode.y)
-        .attr("stroke", edge.visited ? "hsl(var(--primary))" : "hsl(var(--muted-foreground))")
-        .attr("stroke-width", edge.visited ? 3 : 2)
+        .attr("stroke", isMstEdge ? "hsl(var(--chart-1))" : edge.visited ? "hsl(var(--primary))" : "hsl(var(--muted-foreground))")
+        .attr("stroke-width", isMstEdge ? 4 : edge.visited ? 3 : 2)
         .attr("opacity", 0.6);
 
       // Edge weight label
@@ -104,8 +154,10 @@ export const GraphVisualizer = () => {
         .attr("cy", node.y)
         .attr("r", 25)
         .attr("fill", node.isStart ? "hsl(var(--primary))" : node.isEnd ? "hsl(var(--destructive))" : node.visited ? "hsl(var(--secondary))" : "hsl(var(--card))")
-        .attr("stroke", "hsl(var(--primary))")
-        .attr("stroke-width", 2);
+        .attr("stroke", selectedNode === node.id ? "hsl(var(--chart-2))" : "hsl(var(--primary))")
+        .attr("stroke-width", selectedNode === node.id ? 4 : 2)
+        .style("cursor", editMode !== "select" ? "pointer" : "default")
+        .on("click", () => handleNodeClick(node.id));
 
       group
         .append("text")
@@ -147,6 +199,18 @@ export const GraphVisualizer = () => {
         break;
       case "astar":
         await runAStar(startNode.id);
+        break;
+      case "kruskal":
+        await runKruskal();
+        break;
+      case "prim":
+        await runPrim(startNode.id);
+        break;
+      case "floyd":
+        await runFloydWarshall();
+        break;
+      case "bellman":
+        await runBellmanFord(startNode.id);
         break;
     }
 
@@ -295,11 +359,218 @@ export const GraphVisualizer = () => {
     await runDijkstra(startId);
   };
 
+  const runKruskal = async () => {
+    setMstEdges([]);
+    const sortedEdges = [...edges].sort((a, b) => a.weight - b.weight);
+    const parent = new Map<string, string>();
+    const rank = new Map<string, number>();
+
+    nodes.forEach(node => {
+      parent.set(node.id, node.id);
+      rank.set(node.id, 0);
+    });
+
+    const find = (id: string): string => {
+      if (parent.get(id) !== id) {
+        parent.set(id, find(parent.get(id)!));
+      }
+      return parent.get(id)!;
+    };
+
+    const union = (id1: string, id2: string): boolean => {
+      const root1 = find(id1);
+      const root2 = find(id2);
+
+      if (root1 === root2) return false;
+
+      const rank1 = rank.get(root1)!;
+      const rank2 = rank.get(root2)!;
+
+      if (rank1 > rank2) {
+        parent.set(root2, root1);
+      } else if (rank1 < rank2) {
+        parent.set(root1, root2);
+      } else {
+        parent.set(root2, root1);
+        rank.set(root1, rank1 + 1);
+      }
+      return true;
+    };
+
+    const mst: Edge[] = [];
+
+    for (const edge of sortedEdges) {
+      setEdges(prev =>
+        prev.map(e =>
+          e.source === edge.source && e.target === edge.target
+            ? { ...e, visited: true }
+            : e
+        )
+      );
+
+      await new Promise(resolve => setTimeout(resolve, 1000 - speed * 10));
+
+      if (union(edge.source, edge.target)) {
+        mst.push(edge);
+        setMstEdges([...mst]);
+        toast.success(`Added edge ${edge.source}-${edge.target} (${edge.weight})`);
+      }
+
+      if (mst.length === nodes.length - 1) break;
+    }
+
+    toast.success(`MST complete! Total weight: ${mst.reduce((sum, e) => sum + e.weight, 0)}`);
+  };
+
+  const runPrim = async (startId: string) => {
+    setMstEdges([]);
+    const visited = new Set<string>([startId]);
+    const mst: Edge[] = [];
+
+    setNodes(prev =>
+      prev.map(n => (n.id === startId ? { ...n, visited: true } : n))
+    );
+
+    while (visited.size < nodes.length) {
+      let minEdge: Edge | null = null;
+      let minWeight = Infinity;
+
+      edges.forEach(edge => {
+        const hasSource = visited.has(edge.source);
+        const hasTarget = visited.has(edge.target);
+
+        if (hasSource !== hasTarget && edge.weight < minWeight) {
+          minWeight = edge.weight;
+          minEdge = edge;
+        }
+      });
+
+      if (!minEdge) break;
+
+      const newNodeId = visited.has(minEdge.source) ? minEdge.target : minEdge.source;
+      visited.add(newNodeId);
+      mst.push(minEdge);
+
+      setNodes(prev =>
+        prev.map(n => (n.id === newNodeId ? { ...n, visited: true } : n))
+      );
+      setMstEdges([...mst]);
+      setEdges(prev =>
+        prev.map(e =>
+          (e.source === minEdge!.source && e.target === minEdge!.target) ||
+          (e.target === minEdge!.source && e.source === minEdge!.target)
+            ? { ...e, visited: true }
+            : e
+        )
+      );
+
+      await new Promise(resolve => setTimeout(resolve, 1000 - speed * 10));
+      toast.success(`Added edge ${minEdge.source}-${minEdge.target} (${minEdge.weight})`);
+    }
+
+    toast.success(`MST complete! Total weight: ${mst.reduce((sum, e) => sum + e.weight, 0)}`);
+  };
+
+  const runFloydWarshall = async () => {
+    const dist = new Map<string, Map<string, number>>();
+    
+    nodes.forEach(i => {
+      const row = new Map<string, number>();
+      nodes.forEach(j => {
+        row.set(j.id, i.id === j.id ? 0 : Infinity);
+      });
+      dist.set(i.id, row);
+    });
+
+    edges.forEach(edge => {
+      dist.get(edge.source)!.set(edge.target, edge.weight);
+      dist.get(edge.target)!.set(edge.source, edge.weight);
+    });
+
+    for (const k of nodes) {
+      for (const i of nodes) {
+        for (const j of nodes) {
+          const currentDist = dist.get(i.id)!.get(j.id)!;
+          const newDist = dist.get(i.id)!.get(k.id)! + dist.get(k.id)!.get(j.id)!;
+
+          if (newDist < currentDist) {
+            dist.get(i.id)!.set(j.id, newDist);
+            
+            setNodes(prev =>
+              prev.map(n => 
+                n.id === k.id || n.id === i.id || n.id === j.id
+                  ? { ...n, visited: true }
+                  : n
+              )
+            );
+
+            await new Promise(resolve => setTimeout(resolve, 1000 - speed * 10));
+          }
+        }
+      }
+    }
+
+    toast.success("All-pairs shortest paths computed!");
+  };
+
+  const runBellmanFord = async (startId: string) => {
+    const distances = new Map<string, number>();
+    nodes.forEach(n => distances.set(n.id, Infinity));
+    distances.set(startId, 0);
+
+    setNodes(prev =>
+      prev.map(n => ({ ...n, distance: n.id === startId ? 0 : Infinity }))
+    );
+
+    for (let i = 0; i < nodes.length - 1; i++) {
+      for (const edge of edges) {
+        const distSource = distances.get(edge.source)!;
+        const distTarget = distances.get(edge.target)!;
+
+        if (distSource + edge.weight < distTarget) {
+          distances.set(edge.target, distSource + edge.weight);
+          setNodes(prev =>
+            prev.map(n => (n.id === edge.target ? { ...n, distance: distSource + edge.weight, visited: true } : n))
+          );
+          setEdges(prev =>
+            prev.map(e =>
+              e.source === edge.source && e.target === edge.target
+                ? { ...e, visited: true }
+                : e
+            )
+          );
+          await new Promise(resolve => setTimeout(resolve, 1000 - speed * 10));
+        }
+
+        if (distTarget + edge.weight < distSource) {
+          distances.set(edge.source, distTarget + edge.weight);
+          setNodes(prev =>
+            prev.map(n => (n.id === edge.source ? { ...n, distance: distTarget + edge.weight, visited: true } : n))
+          );
+          await new Promise(resolve => setTimeout(resolve, 1000 - speed * 10));
+        }
+      }
+    }
+
+    toast.success("Bellman-Ford complete!");
+  };
+
   const resetVisualization = () => {
     setNodes(prev => prev.map(n => ({ ...n, visited: false, distance: undefined })));
     setEdges(prev => prev.map(e => ({ ...e, visited: false })));
     setCurrentStep(0);
     setQueue([]);
+    setMstEdges([]);
+    setSelectedNode(null);
+  };
+
+  const clearGraph = () => {
+    setNodes([]);
+    setEdges([]);
+    setMstEdges([]);
+    setSelectedNode(null);
+    setNextNodeId(1);
+    toast.success("Graph cleared");
   };
 
   return (
@@ -309,27 +580,53 @@ export const GraphVisualizer = () => {
           <CardTitle>Graph Algorithm Controls</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex flex-wrap gap-4 items-center">
-            <Select value={algorithm} onValueChange={(value) => setAlgorithm(value as Algorithm)}>
-              <SelectTrigger className="w-48">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="bfs">Breadth-First Search</SelectItem>
-                <SelectItem value="dfs">Depth-First Search</SelectItem>
-                <SelectItem value="dijkstra">Dijkstra's Algorithm</SelectItem>
-                <SelectItem value="astar">A* Search</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Algorithm</Label>
+              <Select value={algorithm} onValueChange={(value) => setAlgorithm(value as Algorithm)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="bfs">BFS - Breadth First</SelectItem>
+                  <SelectItem value="dfs">DFS - Depth First</SelectItem>
+                  <SelectItem value="dijkstra">Dijkstra's Shortest Path</SelectItem>
+                  <SelectItem value="astar">A* Search</SelectItem>
+                  <SelectItem value="kruskal">Kruskal's MST</SelectItem>
+                  <SelectItem value="prim">Prim's MST</SelectItem>
+                  <SelectItem value="floyd">Floyd-Warshall</SelectItem>
+                  <SelectItem value="bellman">Bellman-Ford</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
+            <div className="space-y-2">
+              <Label>Edit Mode</Label>
+              <Select value={editMode} onValueChange={(value) => setEditMode(value as EditMode)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="select">Select</SelectItem>
+                  <SelectItem value="addNode">Add Node</SelectItem>
+                  <SelectItem value="addEdge">Add Edge</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-2 items-center">
             <Button onClick={runAlgorithm} disabled={isRunning} className="gap-2">
               {isRunning ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
               {isRunning ? "Running..." : "Start"}
             </Button>
 
-            <Button onClick={resetVisualization} variant="outline" className="gap-2">
+            <Button onClick={resetVisualization} variant="outline" size="sm" className="gap-2">
               <RotateCcw className="h-4 w-4" />
               Reset
+            </Button>
+            <Button onClick={clearGraph} variant="outline" size="sm" className="gap-2">
+              Clear Graph
             </Button>
           </div>
 
@@ -352,11 +649,18 @@ export const GraphVisualizer = () => {
             <CardTitle>Graph Visualization</CardTitle>
           </CardHeader>
           <CardContent>
+            <div className="mb-4 p-3 bg-primary/5 rounded-lg text-sm">
+              {editMode === "addNode" && "Click anywhere to add a node"}
+              {editMode === "addEdge" && "Click two nodes to create an edge"}
+              {editMode === "select" && "Select an algorithm and click Start"}
+            </div>
             <svg
               ref={svgRef}
               width="600"
               height="400"
               className="bg-card/50 rounded-lg border border-border"
+              onClick={handleSvgClick}
+              style={{ cursor: editMode === "addNode" ? "crosshair" : "default" }}
             />
           </CardContent>
         </Card>
@@ -401,7 +705,19 @@ export const GraphVisualizer = () => {
                   <div className="w-8 h-0.5 bg-primary" />
                   <span>Visited Edge</span>
                 </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-1 bg-chart-1" />
+                  <span>MST Edge</span>
+                </div>
               </div>
+            </div>
+
+            <div className="p-3 bg-muted/50 rounded-lg text-xs space-y-1">
+              <p><strong>Tips:</strong></p>
+              <p>• Use "Add Node" to click and add nodes</p>
+              <p>• Use "Add Edge" to connect two nodes</p>
+              <p>• Set start node by adding "A" first</p>
+              <p>• MST algorithms work on entire graph</p>
             </div>
           </CardContent>
         </Card>
