@@ -3,14 +3,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Play, Pause, RotateCcw, Plus, MousePointer, Move } from "lucide-react";
+import { Play, Pause, RotateCcw, Plus, MousePointer, Move, Save, X } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import * as d3 from "d3";
 
 interface Node {
   id: string;
+  label?: string;
   x: number;
   y: number;
   visited?: boolean;
@@ -55,6 +57,9 @@ export const GraphVisualizer = () => {
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const [mstEdges, setMstEdges] = useState<Edge[]>([]);
   const [nextNodeId, setNextNodeId] = useState(6);
+  const [editingNode, setEditingNode] = useState<string | null>(null);
+  const [editingEdge, setEditingEdge] = useState<{ source: string; target: string } | null>(null);
+  const [editValue, setEditValue] = useState("");
 
   useEffect(() => {
     visualizeGraph();
@@ -99,6 +104,59 @@ export const GraphVisualizer = () => {
     }
   };
 
+  const handleNodeDoubleClick = (nodeId: string) => {
+    const node = nodes.find(n => n.id === nodeId);
+    if (!node) return;
+    setEditingNode(nodeId);
+    setEditValue(node.label || node.id);
+  };
+
+  const handleEdgeDoubleClick = (source: string, target: string) => {
+    const edge = edges.find(e => 
+      (e.source === source && e.target === target) ||
+      (e.source === target && e.target === source)
+    );
+    if (!edge) return;
+    setEditingEdge({ source, target });
+    setEditValue(edge.weight.toString());
+  };
+
+  const saveNodeEdit = () => {
+    if (!editingNode) return;
+    setNodes(prev =>
+      prev.map(n => n.id === editingNode ? { ...n, label: editValue } : n)
+    );
+    setEditingNode(null);
+    setEditValue("");
+    toast.success("Node label updated");
+  };
+
+  const saveEdgeEdit = () => {
+    if (!editingEdge) return;
+    const weight = parseFloat(editValue);
+    if (isNaN(weight) || weight <= 0) {
+      toast.error("Please enter a valid positive number");
+      return;
+    }
+    setEdges(prev =>
+      prev.map(e =>
+        (e.source === editingEdge.source && e.target === editingEdge.target) ||
+        (e.source === editingEdge.target && e.target === editingEdge.source)
+          ? { ...e, weight }
+          : e
+      )
+    );
+    setEditingEdge(null);
+    setEditValue("");
+    toast.success("Edge weight updated");
+  };
+
+  const cancelEdit = () => {
+    setEditingNode(null);
+    setEditingEdge(null);
+    setEditValue("");
+  };
+
   const visualizeGraph = () => {
     if (!svgRef.current) return;
 
@@ -132,6 +190,19 @@ export const GraphVisualizer = () => {
       // Edge weight label
       const midX = (sourceNode.x + targetNode.x) / 2;
       const midY = (sourceNode.y + targetNode.y) / 2;
+      
+      // Background for weight
+      edgeGroup
+        .append("rect")
+        .attr("x", midX - 15)
+        .attr("y", midY - 10)
+        .attr("width", 30)
+        .attr("height", 20)
+        .attr("fill", "hsl(var(--background))")
+        .attr("opacity", 0.9)
+        .style("cursor", "pointer")
+        .on("dblclick", () => handleEdgeDoubleClick(edge.source, edge.target));
+      
       edgeGroup
         .append("text")
         .attr("x", midX)
@@ -139,8 +210,9 @@ export const GraphVisualizer = () => {
         .attr("text-anchor", "middle")
         .attr("dominant-baseline", "middle")
         .attr("class", "fill-primary font-semibold text-sm")
-        .style("background", "hsl(var(--background))")
-        .text(edge.weight);
+        .style("cursor", "pointer")
+        .text(edge.weight)
+        .on("dblclick", () => handleEdgeDoubleClick(edge.source, edge.target));
     });
 
     // Draw nodes
@@ -157,7 +229,8 @@ export const GraphVisualizer = () => {
         .attr("stroke", selectedNode === node.id ? "hsl(var(--chart-2))" : "hsl(var(--primary))")
         .attr("stroke-width", selectedNode === node.id ? 4 : 2)
         .style("cursor", editMode !== "select" ? "pointer" : "default")
-        .on("click", () => handleNodeClick(node.id));
+        .on("click", () => handleNodeClick(node.id))
+        .on("dblclick", () => handleNodeDoubleClick(node.id));
 
       group
         .append("text")
@@ -166,7 +239,9 @@ export const GraphVisualizer = () => {
         .attr("text-anchor", "middle")
         .attr("dominant-baseline", "middle")
         .attr("class", "fill-foreground font-bold")
-        .text(node.id);
+        .style("cursor", "pointer")
+        .text(node.label || node.id)
+        .on("dblclick", () => handleNodeDoubleClick(node.id));
 
       if (node.distance !== undefined) {
         group
@@ -716,12 +791,87 @@ export const GraphVisualizer = () => {
               <p><strong>Tips:</strong></p>
               <p>• Use "Add Node" to click and add nodes</p>
               <p>• Use "Add Edge" to connect two nodes</p>
+              <p>• Double-click nodes to edit labels</p>
+              <p>• Double-click edge weights to edit</p>
               <p>• Set start node by adding "A" first</p>
               <p>• MST algorithms work on entire graph</p>
             </div>
           </CardContent>
         </Card>
       </div>
+
+      {/* Edit Node Dialog */}
+      <Dialog open={editingNode !== null} onOpenChange={(open) => !open && cancelEdit()}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Node Label</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="nodeLabel">Node Label</Label>
+              <Input
+                id="nodeLabel"
+                value={editValue}
+                onChange={(e) => setEditValue(e.target.value)}
+                placeholder="Enter node label"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") saveNodeEdit();
+                  if (e.key === "Escape") cancelEdit();
+                }}
+                autoFocus
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={cancelEdit}>
+              <X className="h-4 w-4 mr-2" />
+              Cancel
+            </Button>
+            <Button onClick={saveNodeEdit}>
+              <Save className="h-4 w-4 mr-2" />
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Edge Dialog */}
+      <Dialog open={editingEdge !== null} onOpenChange={(open) => !open && cancelEdit()}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Edge Weight</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edgeWeight">Edge Weight</Label>
+              <Input
+                id="edgeWeight"
+                type="number"
+                value={editValue}
+                onChange={(e) => setEditValue(e.target.value)}
+                placeholder="Enter weight"
+                min="0.1"
+                step="0.1"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") saveEdgeEdit();
+                  if (e.key === "Escape") cancelEdit();
+                }}
+                autoFocus
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={cancelEdit}>
+              <X className="h-4 w-4 mr-2" />
+              Cancel
+            </Button>
+            <Button onClick={saveEdgeEdit}>
+              <Save className="h-4 w-4 mr-2" />
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
