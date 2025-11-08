@@ -51,78 +51,81 @@ const Visualizer = () => {
       <Navigation />
 
       {/* Main Content */}
-      <div className="container mx-auto px-4 py-8 animate-fade-in-up relative" id="visualizer-content">
-        <div className="mb-6">
+      <div className="container mx-auto px-2 md:px-4 py-4 md:py-8 animate-fade-in-up relative" id="visualizer-content">
+        <div className="mb-4 md:mb-6">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <div className="flex flex-col gap-4 mb-6">
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="flex flex-col gap-3 md:gap-4 mb-4 md:mb-6">
+              <div className="flex flex-col gap-3 md:gap-4">
                 <div>
-                  <h1 className="text-3xl font-bold mb-2">Algorithm Visualizer</h1>
-                  <p className="text-muted-foreground">
+                  <h1 className="text-2xl md:text-3xl font-bold mb-1 md:mb-2">Algorithm Visualizer</h1>
+                  <p className="text-sm md:text-base text-muted-foreground">
                     Visualize algorithms with real code execution and performance analysis
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => setShowOnboarding(true)}
-                    className="gap-2"
+                    className="gap-1 md:gap-2 text-xs md:text-sm"
                   >
-                    <HelpCircle className="h-4 w-4" />
-                    Tutorial
+                    <HelpCircle className="h-3 w-3 md:h-4 md:w-4" />
+                    <span className="hidden sm:inline">Tutorial</span>
+                    <span className="sm:hidden">Help</span>
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={handleExportImage}
                     disabled={isExporting}
-                    className="gap-2"
+                    className="gap-1 md:gap-2 text-xs md:text-sm"
                   >
-                    <Share2 className="h-4 w-4" />
-                    Export Image
+                    <Share2 className="h-3 w-3 md:h-4 md:w-4" />
+                    <span className="hidden sm:inline">Export Image</span>
+                    <span className="sm:hidden">Image</span>
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={handleExportGIF}
                     disabled={isExporting}
-                    className="gap-2"
+                    className="gap-1 md:gap-2 text-xs md:text-sm"
                   >
-                    <Share2 className="h-4 w-4" />
-                    Export GIF
+                    <Share2 className="h-3 w-3 md:h-4 md:w-4" />
+                    <span className="hidden sm:inline">Export GIF</span>
+                    <span className="sm:hidden">GIF</span>
                   </Button>
                 </div>
               </div>
 
-              <TabsList className="w-fit grid grid-cols-3 md:grid-cols-7 gap-1">
-                <TabsTrigger value="standard" className="gap-2">
-                  <Code2 className="h-4 w-4" />
-                  <span className="hidden md:inline">Standard</span>
+              <TabsList className="w-full grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-1">
+                <TabsTrigger value="standard" className="gap-1 md:gap-2 text-xs md:text-sm">
+                  <Code2 className="h-3 w-3 md:h-4 md:w-4" />
+                  <span>Standard</span>
                 </TabsTrigger>
-                <TabsTrigger value="comparison" className="gap-2">
-                  <GitCompare className="h-4 w-4" />
-                  <span className="hidden md:inline">Compare</span>
+                <TabsTrigger value="comparison" className="gap-1 md:gap-2 text-xs md:text-sm">
+                  <GitCompare className="h-3 w-3 md:h-4 md:w-4" />
+                  <span>Compare</span>
                 </TabsTrigger>
-                <TabsTrigger value="debug" className="gap-2">
-                  <Bug className="h-4 w-4" />
-                  <span className="hidden md:inline">Debug</span>
+                <TabsTrigger value="debug" className="gap-1 md:gap-2 text-xs md:text-sm">
+                  <Bug className="h-3 w-3 md:h-4 md:w-4" />
+                  <span>Debug</span>
                 </TabsTrigger>
-                <TabsTrigger value="challenge" className="gap-2">
-                  <Trophy className="h-4 w-4" />
-                  <span className="hidden md:inline">Challenge</span>
+                <TabsTrigger value="challenge" className="gap-1 md:gap-2 text-xs md:text-sm">
+                  <Trophy className="h-3 w-3 md:h-4 md:w-4" />
+                  <span>Challenge</span>
                 </TabsTrigger>
-                <TabsTrigger value="race" className="gap-2">
-                  <Flame className="h-4 w-4" />
-                  <span className="hidden md:inline">Race</span>
+                <TabsTrigger value="race" className="gap-1 md:gap-2 text-xs md:text-sm">
+                  <Flame className="h-3 w-3 md:h-4 md:w-4" />
+                  <span>Race</span>
                 </TabsTrigger>
-                <TabsTrigger value="tree" className="gap-2">
-                  <Network className="h-4 w-4" />
-                  <span className="hidden md:inline">Trees</span>
+                <TabsTrigger value="tree" className="gap-1 md:gap-2 text-xs md:text-sm">
+                  <Network className="h-3 w-3 md:h-4 md:w-4" />
+                  <span>Trees</span>
                 </TabsTrigger>
-                <TabsTrigger value="graph" className="gap-2">
-                  <Network className="h-4 w-4" />
-                  <span className="hidden md:inline">Graphs</span>
+                <TabsTrigger value="graph" className="gap-1 md:gap-2 text-xs md:text-sm">
+                  <Network className="h-3 w-3 md:h-4 md:w-4" />
+                  <span>Graphs</span>
                 </TabsTrigger>
               </TabsList>
             </div>

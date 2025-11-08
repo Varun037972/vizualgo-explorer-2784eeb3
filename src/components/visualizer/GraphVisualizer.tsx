@@ -649,13 +649,13 @@ export const GraphVisualizer = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       <Card className="border-primary/20">
         <CardHeader>
-          <CardTitle>Graph Algorithm Controls</CardTitle>
+          <CardTitle className="text-base md:text-lg">Graph Algorithm Controls</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
             <div className="space-y-2">
               <Label>Algorithm</Label>
               <Select value={algorithm} onValueChange={(value) => setAlgorithm(value as Algorithm)}>
@@ -691,16 +691,16 @@ export const GraphVisualizer = () => {
           </div>
 
           <div className="flex flex-wrap gap-2 items-center">
-            <Button onClick={runAlgorithm} disabled={isRunning} className="gap-2">
-              {isRunning ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+            <Button onClick={runAlgorithm} disabled={isRunning} className="gap-1 md:gap-2 text-xs md:text-sm touch-manipulation">
+              {isRunning ? <Pause className="h-3 w-3 md:h-4 md:w-4" /> : <Play className="h-3 w-3 md:h-4 md:w-4" />}
               {isRunning ? "Running..." : "Start"}
             </Button>
 
-            <Button onClick={resetVisualization} variant="outline" size="sm" className="gap-2">
-              <RotateCcw className="h-4 w-4" />
+            <Button onClick={resetVisualization} variant="outline" size="sm" className="gap-1 md:gap-2 text-xs md:text-sm touch-manipulation">
+              <RotateCcw className="h-3 w-3 md:h-4 md:w-4" />
               Reset
             </Button>
-            <Button onClick={clearGraph} variant="outline" size="sm" className="gap-2">
+            <Button onClick={clearGraph} variant="outline" size="sm" className="gap-1 md:gap-2 text-xs md:text-sm touch-manipulation">
               Clear Graph
             </Button>
           </div>
@@ -718,41 +718,44 @@ export const GraphVisualizer = () => {
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
         <Card className="lg:col-span-2 border-primary/20">
           <CardHeader>
-            <CardTitle>Graph Visualization</CardTitle>
+            <CardTitle className="text-base md:text-lg">Graph Visualization</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="mb-4 p-3 bg-primary/5 rounded-lg text-sm">
+            <div className="mb-3 md:mb-4 p-2 md:p-3 bg-primary/5 rounded-lg text-xs md:text-sm">
               {editMode === "addNode" && "Click anywhere to add a node"}
               {editMode === "addEdge" && "Click two nodes to create an edge"}
               {editMode === "select" && "Select an algorithm and click Start"}
             </div>
-            <svg
-              ref={svgRef}
-              width="600"
-              height="400"
-              className="bg-card/50 rounded-lg border border-border"
-              onClick={handleSvgClick}
-              style={{ cursor: editMode === "addNode" ? "crosshair" : "default" }}
-            />
+            <div className="overflow-x-auto">
+              <svg
+                ref={svgRef}
+                width="600"
+                height="400"
+                viewBox="0 0 600 400"
+                className="bg-card/50 rounded-lg border border-border w-full h-auto max-w-full"
+                onClick={handleSvgClick}
+                style={{ cursor: editMode === "addNode" ? "crosshair" : "default", touchAction: "pan-y" }}
+              />
+            </div>
           </CardContent>
         </Card>
 
         <Card className="border-primary/20">
           <CardHeader>
-            <CardTitle>Algorithm Info</CardTitle>
+            <CardTitle className="text-base md:text-lg">Algorithm Info</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-3 md:space-y-4">
             <div>
-              <h4 className="font-semibold mb-2">Current Step: {currentStep}</h4>
+              <h4 className="font-semibold mb-2 text-sm md:text-base">Current Step: {currentStep}</h4>
               {queue.length > 0 && (
                 <div className="space-y-2">
-                  <p className="text-sm text-muted-foreground">Queue/Stack:</p>
+                  <p className="text-xs md:text-sm text-muted-foreground">Queue/Stack:</p>
                   <div className="flex gap-2 flex-wrap">
                     {queue.map((nodeId, i) => (
-                      <div key={i} className="px-3 py-1 bg-primary/20 rounded-full text-sm font-mono">
+                      <div key={i} className="px-2 md:px-3 py-1 bg-primary/20 rounded-full text-xs md:text-sm font-mono">
                         {nodeId}
                       </div>
                     ))}
@@ -762,32 +765,32 @@ export const GraphVisualizer = () => {
             </div>
 
             <div className="space-y-2">
-              <h4 className="font-semibold">Legend</h4>
-              <div className="space-y-2 text-sm">
+              <h4 className="font-semibold text-sm md:text-base">Legend</h4>
+              <div className="space-y-1.5 md:space-y-2 text-xs md:text-sm">
                 <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded-full bg-primary" />
+                  <div className="w-3 h-3 md:w-4 md:h-4 rounded-full bg-primary flex-shrink-0" />
                   <span>Start Node</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded-full bg-destructive" />
+                  <div className="w-3 h-3 md:w-4 md:h-4 rounded-full bg-destructive flex-shrink-0" />
                   <span>End Node</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded-full bg-secondary" />
+                  <div className="w-3 h-3 md:w-4 md:h-4 rounded-full bg-secondary flex-shrink-0" />
                   <span>Visited Node</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-0.5 bg-primary" />
+                  <div className="w-6 md:w-8 h-0.5 bg-primary flex-shrink-0" />
                   <span>Visited Edge</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-1 bg-chart-1" />
+                  <div className="w-6 md:w-8 h-1 bg-chart-1 flex-shrink-0" />
                   <span>MST Edge</span>
                 </div>
               </div>
             </div>
 
-            <div className="p-3 bg-muted/50 rounded-lg text-xs space-y-1">
+            <div className="p-2 md:p-3 bg-muted/50 rounded-lg text-xs space-y-1">
               <p><strong>Tips:</strong></p>
               <p>• Use "Add Node" to click and add nodes</p>
               <p>• Use "Add Edge" to connect two nodes</p>
