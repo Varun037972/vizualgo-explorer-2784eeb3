@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Play, Pause, RotateCcw, Plus, MousePointer, Move, Save, X } from "lucide-react";
+import { Play, Pause, RotateCcw, Plus, MousePointer, Move, Save, X, Grid3x3, GitBranch, Hexagon, Circle } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -60,6 +60,7 @@ export const GraphVisualizer = () => {
   const [editingNode, setEditingNode] = useState<string | null>(null);
   const [editingEdge, setEditingEdge] = useState<{ source: string; target: string } | null>(null);
   const [editValue, setEditValue] = useState("");
+  const [isDragging, setIsDragging] = useState(false);
 
   useEffect(() => {
     visualizeGraph();
@@ -215,12 +216,33 @@ export const GraphVisualizer = () => {
         .on("dblclick", () => handleEdgeDoubleClick(edge.source, edge.target));
     });
 
-    // Draw nodes
+    // Draw nodes with drag behavior
     const nodeGroup = svg.append("g");
+    
+    const drag = d3.drag<SVGCircleElement, Node>()
+      .on("start", function(event, d) {
+        setIsDragging(true);
+        d3.select(this).raise().attr("stroke-width", 4);
+      })
+      .on("drag", function(event, d) {
+        const node = nodes.find(n => n.id === d.id);
+        if (!node) return;
+        
+        // Update position
+        node.x = Math.max(25, Math.min(575, event.x));
+        node.y = Math.max(25, Math.min(375, event.y));
+        
+        setNodes([...nodes]);
+      })
+      .on("end", function(event, d) {
+        setIsDragging(false);
+        d3.select(this).attr("stroke-width", selectedNode === d.id ? 4 : 2);
+      });
+
     nodes.forEach(node => {
       const group = nodeGroup.append("g");
 
-      group
+      const circle = group
         .append("circle")
         .attr("cx", node.x)
         .attr("cy", node.y)
@@ -228,9 +250,14 @@ export const GraphVisualizer = () => {
         .attr("fill", node.isStart ? "hsl(var(--primary))" : node.isEnd ? "hsl(var(--destructive))" : node.visited ? "hsl(var(--secondary))" : "hsl(var(--card))")
         .attr("stroke", selectedNode === node.id ? "hsl(var(--chart-2))" : "hsl(var(--primary))")
         .attr("stroke-width", selectedNode === node.id ? 4 : 2)
-        .style("cursor", editMode !== "select" ? "pointer" : "default")
+        .style("cursor", editMode === "select" ? "move" : "pointer")
+        .datum(node)
         .on("click", () => handleNodeClick(node.id))
         .on("dblclick", () => handleNodeDoubleClick(node.id));
+
+      if (editMode === "select") {
+        circle.call(drag as any);
+      }
 
       group
         .append("text")
@@ -238,10 +265,8 @@ export const GraphVisualizer = () => {
         .attr("y", node.y)
         .attr("text-anchor", "middle")
         .attr("dominant-baseline", "middle")
-        .attr("class", "fill-foreground font-bold")
-        .style("cursor", "pointer")
-        .text(node.label || node.id)
-        .on("dblclick", () => handleNodeDoubleClick(node.id));
+        .attr("class", "fill-foreground font-bold pointer-events-none")
+        .text(node.label || node.id);
 
       if (node.distance !== undefined) {
         group
@@ -249,7 +274,7 @@ export const GraphVisualizer = () => {
           .attr("x", node.x)
           .attr("y", node.y + 40)
           .attr("text-anchor", "middle")
-          .attr("class", "fill-muted-foreground text-sm")
+          .attr("class", "fill-muted-foreground text-sm pointer-events-none")
           .text(`d: ${node.distance}`);
       }
     });
@@ -648,8 +673,208 @@ export const GraphVisualizer = () => {
     toast.success("Graph cleared");
   };
 
+  const loadTemplate = (template: "complete" | "cycle" | "tree" | "grid") => {
+    let newNodes: Node[] = [];
+    let newEdges: Edge[] = [];
+
+    switch (template) {
+      case "complete": {
+        // Complete graph K5
+        const radius = 120;
+        const centerX = 300;
+        const centerY = 200;
+        for (let i = 0; i < 5; i++) {
+          const angle = (i * 2 * Math.PI) / 5 - Math.PI / 2;
+          newNodes.push({
+            id: String.fromCharCode(65 + i),
+            x: centerX + radius * Math.cos(angle),
+            y: centerY + radius * Math.sin(angle),
+            isStart: i === 0,
+          });
+        }
+        // Connect all pairs
+        for (let i = 0; i < 5; i++) {
+          for (let j = i + 1; j < 5; j++) {
+            newEdges.push({
+              source: String.fromCharCode(65 + i),
+              target: String.fromCharCode(65 + j),
+              weight: Math.floor(Math.random() * 9) + 1,
+            });
+          }
+        }
+        break;
+      }
+      case "cycle": {
+        // Cycle graph C6
+        const radius = 120;
+        const centerX = 300;
+        const centerY = 200;
+        for (let i = 0; i < 6; i++) {
+          const angle = (i * 2 * Math.PI) / 6 - Math.PI / 2;
+          newNodes.push({
+            id: String.fromCharCode(65 + i),
+            x: centerX + radius * Math.cos(angle),
+            y: centerY + radius * Math.sin(angle),
+            isStart: i === 0,
+          });
+        }
+        // Connect in cycle
+        for (let i = 0; i < 6; i++) {
+          newEdges.push({
+            source: String.fromCharCode(65 + i),
+            target: String.fromCharCode(65 + ((i + 1) % 6)),
+            weight: Math.floor(Math.random() * 9) + 1,
+          });
+        }
+        break;
+      }
+      case "tree": {
+        // Binary tree
+        newNodes = [
+          { id: "A", x: 300, y: 50, isStart: true },
+          { id: "B", x: 200, y: 130 },
+          { id: "C", x: 400, y: 130 },
+          { id: "D", x: 150, y: 210 },
+          { id: "E", x: 250, y: 210 },
+          { id: "F", x: 350, y: 210 },
+          { id: "G", x: 450, y: 210 },
+        ];
+        newEdges = [
+          { source: "A", target: "B", weight: 2 },
+          { source: "A", target: "C", weight: 3 },
+          { source: "B", target: "D", weight: 1 },
+          { source: "B", target: "E", weight: 4 },
+          { source: "C", target: "F", weight: 2 },
+          { source: "C", target: "G", weight: 5 },
+        ];
+        break;
+      }
+      case "grid": {
+        // 3x3 grid
+        for (let row = 0; row < 3; row++) {
+          for (let col = 0; col < 3; col++) {
+            newNodes.push({
+              id: String.fromCharCode(65 + row * 3 + col),
+              x: 150 + col * 150,
+              y: 100 + row * 150,
+              isStart: row === 0 && col === 0,
+            });
+          }
+        }
+        // Connect horizontally and vertically
+        for (let row = 0; row < 3; row++) {
+          for (let col = 0; col < 3; col++) {
+            const current = String.fromCharCode(65 + row * 3 + col);
+            // Right neighbor
+            if (col < 2) {
+              newEdges.push({
+                source: current,
+                target: String.fromCharCode(65 + row * 3 + col + 1),
+                weight: Math.floor(Math.random() * 9) + 1,
+              });
+            }
+            // Bottom neighbor
+            if (row < 2) {
+              newEdges.push({
+                source: current,
+                target: String.fromCharCode(65 + (row + 1) * 3 + col),
+                weight: Math.floor(Math.random() * 9) + 1,
+              });
+            }
+          }
+        }
+        break;
+      }
+    }
+
+    setNodes(newNodes);
+    setEdges(newEdges);
+    setNextNodeId(newNodes.length + 1);
+    resetVisualization();
+    toast.success(`${template.charAt(0).toUpperCase() + template.slice(1)} graph loaded`);
+  };
+
+  const getAlgorithmInfo = (algo: Algorithm) => {
+    const info = {
+      bfs: {
+        name: "Breadth-First Search",
+        time: "O(V + E)",
+        space: "O(V)",
+        useCase: "Shortest path in unweighted graphs, level-order traversal",
+      },
+      dfs: {
+        name: "Depth-First Search",
+        time: "O(V + E)",
+        space: "O(V)",
+        useCase: "Cycle detection, topological sorting, maze solving",
+      },
+      dijkstra: {
+        name: "Dijkstra's Algorithm",
+        time: "O((V + E) log V)",
+        space: "O(V)",
+        useCase: "Shortest path in weighted graphs with non-negative weights",
+      },
+      astar: {
+        name: "A* Search",
+        time: "O(E) with good heuristic",
+        space: "O(V)",
+        useCase: "Pathfinding with heuristic guidance (games, GPS)",
+      },
+      kruskal: {
+        name: "Kruskal's MST",
+        time: "O(E log E)",
+        space: "O(V)",
+        useCase: "Minimum spanning tree, network design, clustering",
+      },
+      prim: {
+        name: "Prim's MST",
+        time: "O(E log V)",
+        space: "O(V)",
+        useCase: "Minimum spanning tree for dense graphs",
+      },
+      floyd: {
+        name: "Floyd-Warshall",
+        time: "O(V³)",
+        space: "O(V²)",
+        useCase: "All-pairs shortest paths, transitive closure",
+      },
+      bellman: {
+        name: "Bellman-Ford",
+        time: "O(V × E)",
+        space: "O(V)",
+        useCase: "Shortest path with negative weights, detects negative cycles",
+      },
+    };
+    return info[algo];
+  };
+
+  const currentAlgoInfo = getAlgorithmInfo(algorithm);
+
   return (
     <div className="space-y-4 md:space-y-6">
+      {/* Algorithm Comparison Card */}
+      <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-secondary/5">
+        <CardHeader>
+          <CardTitle className="text-base md:text-lg">Current Algorithm: {currentAlgoInfo.name}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
+            <div className="p-3 bg-background/50 rounded-lg">
+              <div className="text-xs text-muted-foreground mb-1">Time Complexity</div>
+              <div className="font-mono font-bold text-sm md:text-base text-primary">{currentAlgoInfo.time}</div>
+            </div>
+            <div className="p-3 bg-background/50 rounded-lg">
+              <div className="text-xs text-muted-foreground mb-1">Space Complexity</div>
+              <div className="font-mono font-bold text-sm md:text-base text-secondary">{currentAlgoInfo.space}</div>
+            </div>
+            <div className="p-3 bg-background/50 rounded-lg sm:col-span-1">
+              <div className="text-xs text-muted-foreground mb-1">Best Use Case</div>
+              <div className="text-xs md:text-sm">{currentAlgoInfo.useCase}</div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <Card className="border-primary/20">
         <CardHeader>
           <CardTitle className="text-base md:text-lg">Graph Algorithm Controls</CardTitle>
@@ -700,9 +925,31 @@ export const GraphVisualizer = () => {
               <RotateCcw className="h-3 w-3 md:h-4 md:w-4" />
               Reset
             </Button>
-            <Button onClick={clearGraph} variant="outline" size="sm" className="gap-1 md:gap-2 text-xs md:text-sm touch-manipulation">
+            <Button onClick={clearGraph} variant="destructive" size="sm" className="gap-1 md:gap-2 text-xs md:text-sm touch-manipulation">
               Clear Graph
             </Button>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-sm md:text-base">Graph Templates</Label>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <Button onClick={() => loadTemplate("complete")} variant="outline" size="sm" className="gap-1 md:gap-2 text-xs touch-manipulation">
+                <Hexagon className="h-3 w-3 md:h-4 md:w-4" />
+                Complete K5
+              </Button>
+              <Button onClick={() => loadTemplate("cycle")} variant="outline" size="sm" className="gap-1 md:gap-2 text-xs touch-manipulation">
+                <Circle className="h-3 w-3 md:h-4 md:w-4" />
+                Cycle C6
+              </Button>
+              <Button onClick={() => loadTemplate("tree")} variant="outline" size="sm" className="gap-1 md:gap-2 text-xs touch-manipulation">
+                <GitBranch className="h-3 w-3 md:h-4 md:w-4" />
+                Binary Tree
+              </Button>
+              <Button onClick={() => loadTemplate("grid")} variant="outline" size="sm" className="gap-1 md:gap-2 text-xs touch-manipulation">
+                <Grid3x3 className="h-3 w-3 md:h-4 md:w-4" />
+                Grid 3×3
+              </Button>
+            </div>
           </div>
 
           <div className="space-y-2">
@@ -727,7 +974,7 @@ export const GraphVisualizer = () => {
             <div className="mb-3 md:mb-4 p-2 md:p-3 bg-primary/5 rounded-lg text-xs md:text-sm">
               {editMode === "addNode" && "Click anywhere to add a node"}
               {editMode === "addEdge" && "Click two nodes to create an edge"}
-              {editMode === "select" && "Select an algorithm and click Start"}
+              {editMode === "select" && "Drag nodes to reposition them • Select algorithm and click Start"}
             </div>
             <div className="overflow-x-auto">
               <svg
@@ -792,11 +1039,12 @@ export const GraphVisualizer = () => {
 
             <div className="p-2 md:p-3 bg-muted/50 rounded-lg text-xs space-y-1">
               <p><strong>Tips:</strong></p>
+              <p>• Drag nodes in Select mode to reposition</p>
               <p>• Use "Add Node" to click and add nodes</p>
               <p>• Use "Add Edge" to connect two nodes</p>
               <p>• Double-click nodes to edit labels</p>
               <p>• Double-click edge weights to edit</p>
-              <p>• Set start node by adding "A" first</p>
+              <p>• Load templates for quick graphs</p>
               <p>• MST algorithms work on entire graph</p>
             </div>
           </CardContent>
