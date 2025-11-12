@@ -6,9 +6,10 @@ interface MemoryVisualizerProps {
   currentStep: number;
   totalSteps: number;
   isActive: boolean;
+  currentArray?: number[];
 }
 
-export const MemoryVisualizer = ({ arraySize, currentStep, totalSteps, isActive }: MemoryVisualizerProps) => {
+export const MemoryVisualizer = ({ arraySize, currentStep, totalSteps, isActive, currentArray }: MemoryVisualizerProps) => {
   // Calculate memory usage
   const baseMemory = arraySize * 4; // 4 bytes per integer
   const stackMemory = Math.floor((currentStep / totalSteps) * 50) || 0;
@@ -83,16 +84,19 @@ export const MemoryVisualizer = ({ arraySize, currentStep, totalSteps, isActive 
             <div className="space-y-2">
               <h4 className="text-sm font-semibold text-muted-foreground">Heap Memory</h4>
               <div className="grid grid-cols-8 gap-1">
-                {Array.from({ length: Math.min(arraySize, 16) }).map((_, idx) => (
+                {(currentArray || Array.from({ length: Math.min(arraySize, 16) }, (_, i) => i + 1)).slice(0, 16).map((value, idx) => (
                   <div
                     key={idx}
-                    className="aspect-square bg-primary/20 rounded border border-primary/30 animate-fade-in"
+                    className="aspect-square bg-primary/20 rounded border border-primary/30 animate-fade-in flex items-center justify-center text-xs font-bold text-primary"
                     style={{ animationDelay: `${idx * 50}ms` }}
-                  />
+                  >
+                    {value}
+                  </div>
                 ))}
               </div>
               <p className="text-xs text-muted-foreground">
                 Array: {arraySize} elements × 4 bytes = {baseMemory} bytes
+                {currentArray && currentArray.length > 16 && ` (showing first 16 of ${currentArray.length})`}
               </p>
             </div>
           </>

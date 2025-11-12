@@ -667,6 +667,7 @@ export const SortingVisualizer = () => {
         currentStep={currentStep}
         totalSteps={steps.length}
         isActive={steps.length > 0}
+        currentArray={steps[currentStep]?.array || array}
       />
 
       {/* Original Stats Row (Deprecated - kept for reference) */}
