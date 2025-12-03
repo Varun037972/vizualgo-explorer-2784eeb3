@@ -2,12 +2,14 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Play, Pause, SkipForward, SkipBack, Circle, Upload, RotateCcw, Trash2, AlertCircle } from "lucide-react";
+import { Play, Pause, SkipForward, SkipBack, Circle, Upload, RotateCcw, Trash2, AlertCircle, BookOpen } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "sonner";
+import { CodeSnippetsLibrary } from "./CodeSnippetsLibrary";
 
 interface Variable {
   name: string;
@@ -131,6 +133,26 @@ export const DebugMode = () => {
   const [callStack, setCallStack] = useState<CallStackFrame[]>([]);
   const [executionError, setExecutionError] = useState<ExecutionError | null>(null);
   const [consoleOutput, setConsoleOutput] = useState<string[]>([]);
+  const [showSnippets, setShowSnippets] = useState(false);
+
+  const loadSnippet = (snippetCode: string, name: string) => {
+    setCustomCode(snippetCode);
+    setIsCustomMode(true);
+    setIsEditingCode(false);
+    setShowSnippets(false);
+    
+    // Execute the loaded snippet
+    setTimeout(() => {
+      const { variables: extractedVars, error } = executeCodeSafely(snippetCode);
+      if (error) {
+        setExecutionError(error);
+        setCurrentLine(error.line);
+      } else {
+        setVariables(extractedVars);
+        setExecutionError(null);
+      }
+    }, 100);
+  };
 
   const executeCode = () => {
     const activeCode = isCustomMode && customCode.trim() ? customCode : code;
@@ -263,6 +285,15 @@ export const DebugMode = () => {
         <CardContent>
           <div className="flex gap-2 flex-wrap">
             <Button 
+              onClick={() => setShowSnippets(!showSnippets)} 
+              variant={showSnippets ? "secondary" : "outline"}
+              size="sm"
+              className="gap-2"
+            >
+              <BookOpen className="h-4 w-4" />
+              {showSnippets ? "Hide Templates" : "Algorithm Templates"}
+            </Button>
+            <Button 
               onClick={() => setIsEditingCode(!isEditingCode)} 
               variant={isEditingCode ? "secondary" : "outline"}
               size="sm"
@@ -293,8 +324,15 @@ export const DebugMode = () => {
         </CardContent>
       </Card>
 
+      {/* Algorithm Templates Library */}
+      <Collapsible open={showSnippets} onOpenChange={setShowSnippets}>
+        <CollapsibleContent className="animate-in slide-in-from-top-2 duration-200">
+          <CodeSnippetsLibrary onLoadSnippet={loadSnippet} />
+        </CollapsibleContent>
+      </Collapsible>
+
       {/* Error Display */}
-      {executionError && (
+      {executionError && !showSnippets && (
         <Alert variant="destructive" className="border-destructive/50">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
