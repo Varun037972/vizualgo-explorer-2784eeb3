@@ -1,259 +1,148 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Play, Pause, SkipForward, SkipBack, Circle, Upload, RotateCcw, Trash2, AlertCircle, BookOpen } from "lucide-react";
+import { Play, Pause, SkipForward, SkipBack, Circle, Upload, RotateCcw, Trash2, AlertCircle, BookOpen, FastForward, StepForward } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 import { toast } from "sonner";
 import { CodeSnippetsLibrary } from "./CodeSnippetsLibrary";
+import { useJavaScriptInterpreter, Variable } from "@/hooks/useJavaScriptInterpreter";
 
-interface Variable {
-  name: string;
-  value: string;
-  type: string;
-}
+const exampleCode = `let array = [64, 34, 25, 12, 22];
+let n = array.length;
 
-interface CallStackFrame {
-  function: string;
-  line: number;
-}
-
-interface ExecutionError {
-  message: string;
-  line: number;
-  column: number;
-  name: string;
-}
-
-const exampleCode = `function bubbleSort(arr) {
-  let n = arr.length;
-  for (let i = 0; i < n - 1; i++) {
-    for (let j = 0; j < n - i - 1; j++) {
-      if (arr[j] > arr[j + 1]) {
-        let temp = arr[j];
-        arr[j] = arr[j + 1];
-        arr[j + 1] = temp;
-      }
+for (let i = 0; i < n - 1; i++) {
+  for (let j = 0; j < n - i - 1; j++) {
+    if (array[j] > array[j + 1]) {
+      let temp = array[j];
+      array[j] = array[j + 1];
+      array[j + 1] = temp;
     }
   }
-  return arr;
 }
 
-let array = [64, 34, 25, 12, 22];
-bubbleSort(array);`;
-
-const executeCodeSafely = (code: string): { variables: Variable[], error: ExecutionError | null } => {
-  try {
-    const capturedVariables: Variable[] = [];
-    const timeout = 2000; // 2 second timeout
-    
-    // Create a safe execution context
-    const wrappedCode = `
-      (function() {
-        const __captured__ = {};
-        try {
-          ${code}
-          
-          // Capture all variables in scope
-          const localVars = Object.keys(this).filter(k => !k.startsWith('__'));
-          for (const key of localVars) {
-            __captured__[key] = this[key];
-          }
-          return { success: true, captured: __captured__ };
-        } catch (e) {
-          return { success: false, error: e };
-        }
-      }).call({});
-    `;
-    
-    const startTime = Date.now();
-    const result = new Function(wrappedCode)();
-    
-    if (Date.now() - startTime > timeout) {
-      throw new Error("Execution timeout - possible infinite loop");
-    }
-    
-    if (!result.success) {
-      throw result.error;
-    }
-    
-    // Extract variables
-    for (const [name, value] of Object.entries(result.captured)) {
-      const type = Array.isArray(value) ? "Array" : typeof value;
-      let displayValue = String(value);
-      
-      if (Array.isArray(value)) {
-        displayValue = JSON.stringify(value);
-      } else if (typeof value === "object" && value !== null) {
-        displayValue = JSON.stringify(value, null, 2);
-      }
-      
-      capturedVariables.push({ name, value: displayValue, type });
-    }
-    
-    return { variables: capturedVariables, error: null };
-  } catch (error: any) {
-    const errorLine = extractErrorLine(error.stack, code);
-    return {
-      variables: [],
-      error: {
-        name: error.name || "Error",
-        message: error.message || "Unknown error",
-        line: errorLine,
-        column: 0,
-      },
-    };
-  }
-};
-
-const extractErrorLine = (stack: string, code: string): number => {
-  // Try to extract line number from error stack
-  const match = stack?.match(/<anonymous>:(\d+):/);
-  if (match) {
-    // Adjust for wrapper code offset
-    const rawLine = parseInt(match[1]);
-    return Math.max(1, rawLine - 3);
-  }
-  return 1;
-};
+console.log(array);`;
 
 export const DebugMode = () => {
-  const [code, setCode] = useState(exampleCode);
   const [customCode, setCustomCode] = useState("");
   const [isEditingCode, setIsEditingCode] = useState(false);
   const [isCustomMode, setIsCustomMode] = useState(false);
-  const [currentLine, setCurrentLine] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
   const [breakpoints, setBreakpoints] = useState<Set<number>>(new Set());
-  const [variables, setVariables] = useState<Variable[]>([]);
-  const [callStack, setCallStack] = useState<CallStackFrame[]>([]);
-  const [executionError, setExecutionError] = useState<ExecutionError | null>(null);
-  const [consoleOutput, setConsoleOutput] = useState<string[]>([]);
   const [showSnippets, setShowSnippets] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
 
-  const loadSnippet = (snippetCode: string, name: string) => {
+  const interpreter = useJavaScriptInterpreter();
+  const { state, initializeCode, step, stepBack, runToEnd, reset } = interpreter;
+
+  const activeCode = isCustomMode && customCode.trim() ? customCode : exampleCode;
+  const codeLines = activeCode.split("\n");
+
+  // Initialize code when it changes
+  useEffect(() => {
+    initializeCode(activeCode);
+    setIsInitialized(true);
+  }, [activeCode, initializeCode]);
+
+  const loadSnippet = useCallback((snippetCode: string, name: string) => {
     setCustomCode(snippetCode);
     setIsCustomMode(true);
     setIsEditingCode(false);
     setShowSnippets(false);
-    
-    // Execute the loaded snippet
-    setTimeout(() => {
-      const { variables: extractedVars, error } = executeCodeSafely(snippetCode);
-      if (error) {
-        setExecutionError(error);
-        setCurrentLine(error.line);
-      } else {
-        setVariables(extractedVars);
-        setExecutionError(null);
-      }
-    }, 100);
-  };
+    setIsInitialized(false);
+    toast.success(`Loaded ${name}`);
+  }, []);
 
-  const executeCode = () => {
-    const activeCode = isCustomMode && customCode.trim() ? customCode : code;
+  const handleStep = useCallback(() => {
+    if (state.isComplete || state.error) return;
     
-    // Clear previous state
-    setVariables([]);
-    setExecutionError(null);
-    setConsoleOutput([]);
-    setCurrentLine(0);
+    const hasMore = step();
     
-    // Execute code
-    const { variables: extractedVars, error } = executeCodeSafely(activeCode);
-    
-    if (error) {
-      setExecutionError(error);
-      setCurrentLine(error.line);
-      toast.error(`${error.name}: ${error.message}`, {
-        description: `Line ${error.line}`,
-        duration: 5000,
-      });
-    } else {
-      setVariables(extractedVars);
-      toast.success("Code executed successfully");
+    // Check for breakpoints
+    if (hasMore && breakpoints.has(state.currentLine + 1)) {
+      setIsRunning(false);
+      toast.info(`Hit breakpoint at line ${state.currentLine + 1}`);
     }
-  };
+  }, [step, state.isComplete, state.error, state.currentLine, breakpoints]);
 
-  const loadCustomCode = () => {
+  const handleStepBack = useCallback(() => {
+    stepBack();
+  }, [stepBack]);
+
+  const handleReset = useCallback(() => {
+    reset();
+    setIsRunning(false);
+    toast.success("Debug session reset");
+  }, [reset]);
+
+  const handleRunToEnd = useCallback(() => {
+    runToEnd();
+    setIsRunning(false);
+    if (state.error) {
+      toast.error(`${state.error.name}: ${state.error.message}`);
+    } else {
+      toast.success("Execution complete");
+    }
+  }, [runToEnd, state.error]);
+
+  const loadCustomCode = useCallback(() => {
     if (customCode.trim() === "") {
       toast.error("Please enter some code");
       return;
     }
     setIsCustomMode(true);
     setIsEditingCode(false);
-    executeCode();
-    toast.success("Custom code loaded and executed");
-  };
+    setIsInitialized(false);
+    toast.success("Custom code loaded");
+  }, [customCode]);
 
-  const resetToExample = () => {
-    setCode(exampleCode);
+  const resetToExample = useCallback(() => {
     setCustomCode("");
     setIsCustomMode(false);
     setIsEditingCode(false);
-    setVariables([]);
-    setExecutionError(null);
-    setConsoleOutput([]);
-    setCurrentLine(0);
+    setIsInitialized(false);
+    setBreakpoints(new Set());
     toast.success("Reset to example code");
-  };
+  }, []);
 
-  const restartDebug = () => {
-    setCurrentLine(0);
-    setVariables([]);
-    setExecutionError(null);
-    setIsRunning(false);
-    executeCode();
-  };
+  const toggleBreakpoint = useCallback((lineNumber: number) => {
+    setBreakpoints(prev => {
+      const newBreakpoints = new Set(prev);
+      if (newBreakpoints.has(lineNumber)) {
+        newBreakpoints.delete(lineNumber);
+      } else {
+        newBreakpoints.add(lineNumber);
+      }
+      return newBreakpoints;
+    });
+  }, []);
 
-  const clearConsole = () => {
-    setConsoleOutput([]);
-    toast.success("Console cleared");
-  };
+  const togglePause = useCallback(() => {
+    setIsRunning(prev => !prev);
+  }, []);
 
-  const toggleBreakpoint = (lineNumber: number) => {
-    const newBreakpoints = new Set(breakpoints);
-    if (newBreakpoints.has(lineNumber)) {
-      newBreakpoints.delete(lineNumber);
-    } else {
-      newBreakpoints.add(lineNumber);
-    }
-    setBreakpoints(newBreakpoints);
-  };
-
-  const activeCode = isCustomMode && customCode.trim() ? customCode : code;
-  const codeLines = activeCode.split("\n");
-
-  const stepForward = () => {
-    if (executionError) return;
-    setCurrentLine(prev => Math.min(prev + 1, codeLines.length));
-  };
-
-  const stepBack = () => {
-    setCurrentLine(prev => Math.max(prev - 1, 0));
-  };
-
-  const togglePause = () => {
-    setIsRunning(!isRunning);
-  };
-
+  // Auto-step when running
   useEffect(() => {
-    if (!isRunning) return;
+    if (!isRunning || state.isComplete || state.error) {
+      if (isRunning) setIsRunning(false);
+      return;
+    }
 
     const interval = setInterval(() => {
-      if (breakpoints.has(currentLine + 1)) {
+      if (breakpoints.has(state.currentLine + 1)) {
         setIsRunning(false);
+        toast.info(`Hit breakpoint at line ${state.currentLine + 1}`);
         return;
       }
-      stepForward();
-    }, 500);
+      step();
+    }, 300);
 
     return () => clearInterval(interval);
-  }, [isRunning, currentLine, breakpoints, stepForward]);
+  }, [isRunning, state.isComplete, state.error, state.currentLine, breakpoints, step]);
 
   return (
     <div className="space-y-4">
@@ -262,22 +151,33 @@ export const DebugMode = () => {
         <CardHeader>
           <CardTitle className="flex items-center justify-between flex-wrap gap-3">
             <div className="flex items-center gap-3">
-              <span className="text-base md:text-lg">Debug Mode</span>
+              <span className="text-base md:text-lg">Step-Through Debugger</span>
               <Badge variant={isCustomMode ? "default" : "outline"}>
-                {isCustomMode ? "Custom Mode" : "Standard Mode"}
+                {isCustomMode ? "Custom Code" : "Example Code"}
               </Badge>
+              {state.isComplete && (
+                <Badge variant="secondary" className="bg-green-500/20 text-green-600">
+                  Complete
+                </Badge>
+              )}
             </div>
             <div className="flex gap-2 flex-wrap items-center">
               <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground">Custom Mode</span>
-                <Switch checked={isCustomMode} onCheckedChange={setIsCustomMode} />
+                <span className="text-xs text-muted-foreground">Custom</span>
+                <Switch 
+                  checked={isCustomMode} 
+                  onCheckedChange={(checked) => {
+                    setIsCustomMode(checked);
+                    setIsInitialized(false);
+                  }} 
+                />
               </div>
-              <Button onClick={restartDebug} variant="outline" size="sm" className="gap-2">
+              <Button onClick={handleReset} variant="outline" size="sm" className="gap-2">
                 <RotateCcw className="h-4 w-4" />
-                Restart
+                Reset
               </Button>
-              <Button onClick={resetToExample} variant="outline" size="sm" className="gap-2">
-                Reset Example
+              <Button onClick={resetToExample} variant="outline" size="sm">
+                Example
               </Button>
             </div>
           </CardTitle>
@@ -291,19 +191,24 @@ export const DebugMode = () => {
               className="gap-2"
             >
               <BookOpen className="h-4 w-4" />
-              {showSnippets ? "Hide Templates" : "Algorithm Templates"}
+              {showSnippets ? "Hide Templates" : "Templates"}
             </Button>
             <Button 
               onClick={() => setIsEditingCode(!isEditingCode)} 
               variant={isEditingCode ? "secondary" : "outline"}
               size="sm"
-              className="gap-2"
             >
-              {isEditingCode ? "Cancel Edit" : "Edit Custom Code"}
+              {isEditingCode ? "Cancel" : "Edit Code"}
             </Button>
-            <Button onClick={executeCode} variant="default" size="sm" className="gap-2">
-              <Play className="h-4 w-4" />
-              Execute Code
+            <Button 
+              onClick={handleRunToEnd} 
+              variant="default" 
+              size="sm" 
+              className="gap-2"
+              disabled={state.isComplete}
+            >
+              <FastForward className="h-4 w-4" />
+              Run All
             </Button>
           </div>
           
@@ -312,12 +217,18 @@ export const DebugMode = () => {
               <Textarea
                 value={customCode}
                 onChange={(e) => setCustomCode(e.target.value)}
-                placeholder="Paste your JavaScript code here..."
+                placeholder="Enter your JavaScript code here...
+                
+Examples:
+let x = 5;
+let arr = [1, 2, 3];
+arr.push(4);
+console.log(arr);"
                 className="font-mono text-sm min-h-[200px] md:min-h-[300px]"
               />
               <Button onClick={loadCustomCode} className="w-full md:w-auto gap-2">
                 <Upload className="h-4 w-4" />
-                Load & Execute Custom Code
+                Load Code
               </Button>
             </div>
           )}
@@ -332,12 +243,12 @@ export const DebugMode = () => {
       </Collapsible>
 
       {/* Error Display */}
-      {executionError && !showSnippets && (
+      {state.error && (
         <Alert variant="destructive" className="border-destructive/50">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            <div className="font-semibold">{executionError.name}: {executionError.message}</div>
-            <div className="text-xs mt-1">Line {executionError.line}, Column {executionError.column}</div>
+            <div className="font-semibold">{state.error.name}: {state.error.message}</div>
+            <div className="text-xs mt-1">Line {state.error.line}</div>
           </AlertDescription>
         </Alert>
       )}
@@ -347,15 +258,47 @@ export const DebugMode = () => {
         <Card className="lg:col-span-2 border-primary/20">
           <CardHeader>
             <CardTitle className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-              <span className="text-base md:text-lg">Code View</span>
+              <div className="flex items-center gap-2">
+                <span className="text-base md:text-lg">Code Execution</span>
+                <Badge variant="outline" className="text-xs">
+                  Line {state.currentLine} / {codeLines.length}
+                </Badge>
+              </div>
               <div className="flex gap-2 flex-wrap">
-                <Button onClick={stepBack} variant="outline" size="sm" disabled={currentLine <= 0}>
+                <Button 
+                  onClick={handleStepBack} 
+                  variant="outline" 
+                  size="sm" 
+                  disabled={state.currentLine <= 0}
+                  title="Step Back"
+                >
                   <SkipBack className="h-4 w-4" />
                 </Button>
-                <Button onClick={togglePause} variant={isRunning ? "secondary" : "default"} size="sm">
+                <Button 
+                  onClick={togglePause} 
+                  variant={isRunning ? "secondary" : "default"} 
+                  size="sm"
+                  disabled={state.isComplete}
+                  title={isRunning ? "Pause" : "Auto-Run"}
+                >
                   {isRunning ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
                 </Button>
-                <Button onClick={stepForward} variant="outline" size="sm" disabled={currentLine >= codeLines.length}>
+                <Button 
+                  onClick={handleStep} 
+                  variant="outline" 
+                  size="sm" 
+                  disabled={state.isComplete || state.error !== null}
+                  title="Step Forward"
+                >
+                  <StepForward className="h-4 w-4" />
+                </Button>
+                <Button 
+                  onClick={handleStep} 
+                  variant="outline" 
+                  size="sm" 
+                  disabled={state.isComplete || state.error !== null}
+                  title="Skip to Next"
+                >
                   <SkipForward className="h-4 w-4" />
                 </Button>
               </div>
@@ -363,21 +306,27 @@ export const DebugMode = () => {
           </CardHeader>
           <CardContent>
             <ScrollArea className="h-[400px] md:h-[500px]">
-              <div className="font-mono text-xs md:text-sm bg-card/50 rounded-lg p-2 md:p-4 space-y-1">
+              <div className="font-mono text-xs md:text-sm bg-card/50 rounded-lg p-2 md:p-4 space-y-0.5">
                 {codeLines.map((line, index) => {
                   const lineNumber = index + 1;
-                  const isCurrentLine = lineNumber === currentLine;
-                  const isErrorLine = executionError && lineNumber === executionError.line;
+                  const isCurrentLine = lineNumber === state.currentLine;
+                  const isNextLine = lineNumber === state.currentLine + 1;
+                  const isErrorLine = state.error && lineNumber === state.error.line;
                   const hasBreakpoint = breakpoints.has(lineNumber);
+                  const isExecuted = lineNumber < state.currentLine;
                   
                   return (
                     <div
                       key={lineNumber}
-                      className={`flex items-center gap-1 md:gap-2 px-1 md:px-2 py-1 rounded transition-colors ${
+                      className={`flex items-center gap-1 md:gap-2 px-1 md:px-2 py-0.5 rounded transition-all duration-150 ${
                         isErrorLine 
                           ? "bg-destructive/20 border-l-4 border-destructive" 
                           : isCurrentLine 
-                          ? "bg-primary/20 border-l-2 border-primary" 
+                          ? "bg-primary/30 border-l-4 border-primary shadow-sm" 
+                          : isNextLine
+                          ? "bg-primary/10 border-l-2 border-primary/50"
+                          : isExecuted
+                          ? "opacity-60"
                           : ""
                       }`}
                     >
@@ -389,12 +338,18 @@ export const DebugMode = () => {
                           <AlertCircle className="h-3 w-3 md:h-4 md:w-4 text-destructive" />
                         ) : hasBreakpoint ? (
                           <Circle className="h-3 w-3 md:h-4 md:w-4 fill-destructive text-destructive" />
+                        ) : isCurrentLine ? (
+                          <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
                         ) : (
-                          <Circle className="h-3 w-3 md:h-4 md:w-4 text-muted-foreground/30" />
+                          <Circle className="h-3 w-3 md:h-4 md:w-4 text-muted-foreground/20 hover:text-muted-foreground/50" />
                         )}
                       </button>
-                      <span className="text-muted-foreground w-6 md:w-8 text-right flex-shrink-0">{lineNumber}</span>
-                      <span className={`break-all ${isCurrentLine || isErrorLine ? "font-semibold" : ""}`}>{line}</span>
+                      <span className={`w-6 md:w-8 text-right flex-shrink-0 ${isCurrentLine ? "text-primary font-bold" : "text-muted-foreground"}`}>
+                        {lineNumber}
+                      </span>
+                      <span className={`break-all ${isCurrentLine ? "font-semibold text-foreground" : isErrorLine ? "font-semibold" : ""}`}>
+                        {line || " "}
+                      </span>
                     </div>
                   );
                 })}
@@ -404,27 +359,50 @@ export const DebugMode = () => {
         </Card>
 
         <div className="space-y-4 md:space-y-6">
+          {/* Variables Panel */}
           <Card className="border-primary/20">
-            <CardHeader>
-              <CardTitle className="text-base md:text-lg">Variables</CardTitle>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base md:text-lg flex items-center justify-between">
+                Variables
+                <Badge variant="outline" className="text-xs">
+                  {state.variables.length} vars
+                </Badge>
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-40 md:h-48">
-                {variables.length === 0 ? (
-                  <p className="text-xs md:text-sm text-muted-foreground text-center py-8">
-                    {isCustomMode && !customCode.trim() 
-                      ? "Enter custom code and execute to see variables"
-                      : "Execute code to see variables"}
-                  </p>
+              <ScrollArea className="h-48 md:h-56">
+                {state.variables.length === 0 ? (
+                  <div className="text-xs md:text-sm text-muted-foreground text-center py-8">
+                    <p>Step through code to see variables</p>
+                    <p className="text-xs mt-2 opacity-70">Click the step button or press play</p>
+                  </div>
                 ) : (
                   <div className="space-y-2">
-                    {variables.map((variable, index) => (
-                      <div key={index} className="p-2 md:p-3 bg-card/50 rounded-lg space-y-1 animate-in fade-in duration-200">
+                    {state.variables.map((variable, index) => (
+                      <div 
+                        key={`${variable.name}-${index}`} 
+                        className={`p-2 md:p-3 rounded-lg space-y-1 transition-all duration-300 ${
+                          variable.changed 
+                            ? "bg-primary/20 border border-primary/30 animate-pulse" 
+                            : "bg-card/50"
+                        }`}
+                      >
                         <div className="flex items-center justify-between">
-                          <span className="font-mono font-semibold text-sm md:text-base">{variable.name}</span>
-                          <Badge variant="outline" className="text-xs">{variable.type}</Badge>
+                          <span className="font-mono font-semibold text-sm md:text-base">
+                            {variable.name}
+                          </span>
+                          <div className="flex items-center gap-1">
+                            {variable.changed && (
+                              <Badge variant="default" className="text-xs bg-primary/80">
+                                changed
+                              </Badge>
+                            )}
+                            <Badge variant="outline" className="text-xs">
+                              {variable.type}
+                            </Badge>
+                          </div>
                         </div>
-                        <div className="font-mono text-xs md:text-sm text-muted-foreground break-all max-h-32 overflow-y-auto">
+                        <div className="font-mono text-xs md:text-sm text-muted-foreground break-all max-h-24 overflow-y-auto bg-background/50 rounded p-1.5">
                           {variable.value}
                         </div>
                       </div>
@@ -435,24 +413,30 @@ export const DebugMode = () => {
             </CardContent>
           </Card>
 
+          {/* Console Output */}
           <Card className="border-primary/20">
-            <CardHeader>
+            <CardHeader className="pb-2">
               <CardTitle className="flex items-center justify-between">
-                <span className="text-base md:text-lg">Console</span>
-                <Button onClick={clearConsole} variant="ghost" size="sm" className="gap-2">
-                  <Trash2 className="h-3 w-3" />
-                  Clear
-                </Button>
+                <span className="text-base md:text-lg">Console Output</span>
+                <Badge variant="outline" className="text-xs">
+                  {state.output.length} logs
+                </Badge>
               </CardTitle>
             </CardHeader>
             <CardContent>
               <ScrollArea className="h-32 md:h-40">
-                {consoleOutput.length === 0 ? (
-                  <p className="text-xs text-muted-foreground text-center py-4">No console output</p>
+                {state.output.length === 0 ? (
+                  <p className="text-xs text-muted-foreground text-center py-4">
+                    console.log() output appears here
+                  </p>
                 ) : (
                   <div className="space-y-1 font-mono text-xs">
-                    {consoleOutput.map((log, index) => (
-                      <div key={index} className="p-1 bg-card/50 rounded">
+                    {state.output.map((log, index) => (
+                      <div 
+                        key={index} 
+                        className="p-1.5 bg-card/50 rounded border-l-2 border-primary/50 animate-in slide-in-from-left-2 duration-200"
+                      >
+                        <span className="text-muted-foreground mr-2">›</span>
                         {log}
                       </div>
                     ))}
@@ -462,31 +446,47 @@ export const DebugMode = () => {
             </CardContent>
           </Card>
 
+          {/* Breakpoints */}
           <Card className="border-primary/20">
-            <CardHeader>
-              <CardTitle className="text-base md:text-lg">Breakpoints</CardTitle>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base md:text-lg flex items-center justify-between">
+                Breakpoints
+                <Button 
+                  onClick={() => setBreakpoints(new Set())} 
+                  variant="ghost" 
+                  size="sm"
+                  className="h-6 px-2 text-xs"
+                  disabled={breakpoints.size === 0}
+                >
+                  <Trash2 className="h-3 w-3 mr-1" />
+                  Clear
+                </Button>
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2">
-                {Array.from(breakpoints).map(line => (
-                  <div key={line} className="flex items-center justify-between p-2 bg-destructive/10 rounded">
-                    <span className="font-mono text-sm md:text-base">Line {line}</span>
-                    <Button
-                      onClick={() => toggleBreakpoint(line)}
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 px-2 text-xs md:text-sm touch-manipulation"
-                    >
-                      Remove
-                    </Button>
-                  </div>
-                ))}
-                {breakpoints.size === 0 && (
+              <ScrollArea className="h-24">
+                {breakpoints.size === 0 ? (
                   <p className="text-xs md:text-sm text-muted-foreground text-center py-4">
                     Click line numbers to add breakpoints
                   </p>
+                ) : (
+                  <div className="space-y-1">
+                    {Array.from(breakpoints).sort((a, b) => a - b).map(line => (
+                      <div key={line} className="flex items-center justify-between p-1.5 bg-destructive/10 rounded text-sm">
+                        <span className="font-mono">Line {line}</span>
+                        <Button
+                          onClick={() => toggleBreakpoint(line)}
+                          variant="ghost"
+                          size="sm"
+                          className="h-5 px-2 text-xs"
+                        >
+                          ×
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
                 )}
-              </div>
+              </ScrollArea>
             </CardContent>
           </Card>
         </div>
