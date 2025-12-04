@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Play, Pause, SkipForward, SkipBack, Circle, Upload, RotateCcw, Trash2, AlertCircle, BookOpen, FastForward, StepForward } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -11,8 +10,10 @@ import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 import { toast } from "sonner";
 import { CodeSnippetsLibrary } from "./CodeSnippetsLibrary";
 import { CodeAnalysisPanel } from "./CodeAnalysisPanel";
+import { InlineCodeEditor } from "./InlineCodeEditor";
 import { useJavaScriptInterpreter, Variable } from "@/hooks/useJavaScriptInterpreter";
 import { useCodeAnalysis } from "@/hooks/useCodeAnalysis";
+
 const exampleCode = `let array = [64, 34, 25, 12, 22];
 let n = array.length;
 
@@ -227,18 +228,24 @@ export const DebugMode = () => {
           
           {isEditingCode && (
             <div className="mt-4 space-y-3">
-              <Textarea
-                value={customCode}
-                onChange={(e) => setCustomCode(e.target.value)}
-                placeholder="Enter your JavaScript code here...
-                
-Examples:
-let x = 5;
-let arr = [1, 2, 3];
-arr.push(4);
-console.log(arr);"
-                className="font-mono text-sm min-h-[200px] md:min-h-[300px]"
-              />
+              <div className="relative">
+                <InlineCodeEditor
+                  value={customCode}
+                  onChange={setCustomCode}
+                  placeholder="Enter your JavaScript code here...
+
+Type to see autocomplete suggestions:
+• Keywords: let, const, for, if, while...
+• Methods: .push(), .map(), .filter()...
+• Functions: Math.floor(), console.log()...
+• Snippets: for-loop, if-else, swap..."
+                />
+                <div className="absolute top-2 right-2 flex items-center gap-1">
+                  <Badge variant="outline" className="text-xs bg-background/80">
+                    Tab to accept
+                  </Badge>
+                </div>
+              </div>
               <Button onClick={loadCustomCode} className="w-full md:w-auto gap-2">
                 <Upload className="h-4 w-4" />
                 Load Code
