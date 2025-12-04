@@ -10,8 +10,9 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 import { toast } from "sonner";
 import { CodeSnippetsLibrary } from "./CodeSnippetsLibrary";
+import { CodeAnalysisPanel } from "./CodeAnalysisPanel";
 import { useJavaScriptInterpreter, Variable } from "@/hooks/useJavaScriptInterpreter";
-
+import { useCodeAnalysis } from "@/hooks/useCodeAnalysis";
 const exampleCode = `let array = [64, 34, 25, 12, 22];
 let n = array.length;
 
@@ -38,9 +39,21 @@ export const DebugMode = () => {
 
   const interpreter = useJavaScriptInterpreter();
   const { state, initializeCode, step, stepBack, runToEnd, reset } = interpreter;
+  const codeAnalysis = useCodeAnalysis();
 
   const activeCode = isCustomMode && customCode.trim() ? customCode : exampleCode;
   const codeLines = activeCode.split("\n");
+
+  const handleAnalyze = useCallback(() => {
+    codeAnalysis.analyze(activeCode, "javascript");
+  }, [activeCode, codeAnalysis]);
+
+  const handleApplyFix = useCallback((code: string) => {
+    setCustomCode(code);
+    setIsCustomMode(true);
+    setIsInitialized(false);
+    toast.success("Fix applied - click 'Load Code' to run");
+  }, []);
 
   // Initialize code when it changes
   useEffect(() => {
@@ -491,6 +504,16 @@ console.log(arr);"
           </Card>
         </div>
       </div>
+
+      {/* AI Code Analysis Panel */}
+      <CodeAnalysisPanel
+        result={codeAnalysis.result}
+        isAnalyzing={codeAnalysis.isAnalyzing}
+        error={codeAnalysis.error}
+        onAnalyze={handleAnalyze}
+        onApplyFix={handleApplyFix}
+        onClear={codeAnalysis.clearResult}
+      />
     </div>
   );
 };
