@@ -1,12 +1,15 @@
-import { useState, useRef, useEffect, useCallback, KeyboardEvent } from "react";
+import { useState, useRef, useEffect, useCallback, KeyboardEvent, useMemo } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { Sparkles, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Suggestion {
   label: string;
   detail?: string;
   insertText: string;
-  kind: "keyword" | "function" | "variable" | "method" | "property" | "snippet";
+  kind: "keyword" | "function" | "variable" | "method" | "property" | "snippet" | "ai";
+  isAI?: boolean;
 }
 
 const JAVASCRIPT_SUGGESTIONS: Suggestion[] = [
@@ -90,6 +93,7 @@ const kindIcons: Record<string, string> = {
   method: "◦",
   property: "●",
   snippet: "⧉",
+  ai: "✨",
 };
 
 const kindColors: Record<string, string> = {
@@ -99,7 +103,42 @@ const kindColors: Record<string, string> = {
   method: "text-green-400",
   property: "text-cyan-400",
   snippet: "text-orange-400",
+  ai: "text-pink-400",
 };
+
+// Bracket pairs for auto-closing
+const BRACKET_PAIRS: Record<string, string> = {
+  "(": ")",
+  "[": "]",
+  "{": "}",
+  '"': '"',
+  "'": "'",
+  "`": "`",
+};
+
+const CLOSING_BRACKETS = new Set(Object.values(BRACKET_PAIRS));
+
+// Syntax highlighting token types
+type TokenType = "keyword" | "string" | "number" | "comment" | "function" | "operator" | "variable" | "property" | "bracket" | "default";
+
+interface Token {
+  type: TokenType;
+  value: string;
+}
+
+// JavaScript keywords for highlighting
+const JS_KEYWORDS = new Set([
+  "let", "const", "var", "function", "return", "if", "else", "for", "while",
+  "switch", "case", "break", "continue", "true", "false", "null", "undefined",
+  "new", "this", "class", "extends", "import", "export", "default", "try",
+  "catch", "finally", "throw", "async", "await", "typeof", "instanceof", "in", "of"
+]);
+
+// Built-in objects/functions
+const JS_BUILTINS = new Set([
+  "console", "Math", "Array", "Object", "String", "Number", "Boolean",
+  "Date", "JSON", "Promise", "Map", "Set", "Symbol", "Error"
+]);
 
 interface InlineCodeEditorProps {
   value: string;
@@ -113,11 +152,179 @@ export const InlineCodeEditor = ({ value, onChange, placeholder, className }: In
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [cursorPosition, setCursorPosition] = useState({ top: 0, left: 0 });
+  const [isLoadingAI, setIsLoadingAI] = useState(false);
+  const [matchedBracket, setMatchedBracket] = useState<{ open: number; close: number } | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
   const mirrorRef = useRef<HTMLDivElement>(null);
+  const highlightRef = useRef<HTMLDivElement>(null);
+  const aiDebounceRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Extract variables from current code for context-aware suggestions
+  // Tokenize code for syntax highlighting
+  const tokenize = useCallback((code: string): Token[] => {
+    const tokens: Token[] = [];
+    let i = 0;
+
+    while (i < code.length) {
+      // Comments
+      if (code.slice(i, i + 2) === "//") {
+        let end = i;
+        while (end < code.length && code[end] !== "\n") end++;
+        tokens.push({ type: "comment", value: code.slice(i, end) });
+        i = end;
+        continue;
+      }
+
+      // Multi-line comments
+      if (code.slice(i, i + 2) === "/*") {
+        let end = code.indexOf("*/", i + 2);
+        if (end === -1) end = code.length;
+        else end += 2;
+        tokens.push({ type: "comment", value: code.slice(i, end) });
+        i = end;
+        continue;
+      }
+
+      // Strings
+      if (code[i] === '"' || code[i] === "'" || code[i] === "`") {
+        const quote = code[i];
+        let end = i + 1;
+        while (end < code.length && code[end] !== quote) {
+          if (code[end] === "\\") end++;
+          end++;
+        }
+        tokens.push({ type: "string", value: code.slice(i, end + 1) });
+        i = end + 1;
+        continue;
+      }
+
+      // Numbers
+      if (/\d/.test(code[i]) || (code[i] === "." && /\d/.test(code[i + 1]))) {
+        let end = i;
+        while (end < code.length && /[\d.eE+-]/.test(code[end])) end++;
+        tokens.push({ type: "number", value: code.slice(i, end) });
+        i = end;
+        continue;
+      }
+
+      // Identifiers and keywords
+      if (/[a-zA-Z_$]/.test(code[i])) {
+        let end = i;
+        while (end < code.length && /[\w$]/.test(code[end])) end++;
+        const word = code.slice(i, end);
+        
+        let type: TokenType = "default";
+        if (JS_KEYWORDS.has(word)) {
+          type = "keyword";
+        } else if (JS_BUILTINS.has(word)) {
+          type = "function";
+        } else if (code[end] === "(") {
+          type = "function";
+        } else if (i > 0 && code[i - 1] === ".") {
+          type = "property";
+        } else {
+          type = "variable";
+        }
+        
+        tokens.push({ type, value: word });
+        i = end;
+        continue;
+      }
+
+      // Operators
+      if (/[+\-*/%=<>!&|^~?:]/.test(code[i])) {
+        let end = i;
+        while (end < code.length && /[+\-*/%=<>!&|^~?:]/.test(code[end])) end++;
+        tokens.push({ type: "operator", value: code.slice(i, end) });
+        i = end;
+        continue;
+      }
+
+      // Brackets
+      if (/[()[\]{}]/.test(code[i])) {
+        tokens.push({ type: "bracket", value: code[i] });
+        i++;
+        continue;
+      }
+
+      // Default (whitespace, punctuation, etc.)
+      tokens.push({ type: "default", value: code[i] });
+      i++;
+    }
+
+    return tokens;
+  }, []);
+
+  // Generate highlighted HTML from tokens
+  const highlightedCode = useMemo(() => {
+    const tokens = tokenize(value);
+    return tokens.map((token, i) => {
+      const colorClass = {
+        keyword: "text-purple-400",
+        string: "text-green-400",
+        number: "text-orange-400",
+        comment: "text-muted-foreground italic",
+        function: "text-yellow-400",
+        operator: "text-cyan-400",
+        variable: "text-blue-300",
+        property: "text-cyan-300",
+        bracket: "text-foreground",
+        default: "text-foreground",
+      }[token.type];
+      
+      // Escape HTML
+      const escaped = token.value
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/ /g, "&nbsp;")
+        .replace(/\n/g, "<br/>");
+      
+      return `<span class="${colorClass}">${escaped}</span>`;
+    }).join("");
+  }, [value, tokenize]);
+
+  // Find matching bracket
+  const findMatchingBracket = useCallback((code: string, pos: number): { open: number; close: number } | null => {
+    const char = code[pos];
+    const openBrackets = "([{";
+    const closeBrackets = ")]}";
+    
+    if (openBrackets.includes(char)) {
+      const closeChar = BRACKET_PAIRS[char];
+      let depth = 1;
+      let i = pos + 1;
+      while (i < code.length && depth > 0) {
+        if (code[i] === char) depth++;
+        else if (code[i] === closeChar) depth--;
+        i++;
+      }
+      if (depth === 0) return { open: pos, close: i - 1 };
+    } else if (closeBrackets.includes(char)) {
+      const openChar = Object.entries(BRACKET_PAIRS).find(([, v]) => v === char)?.[0];
+      if (openChar) {
+        let depth = 1;
+        let i = pos - 1;
+        while (i >= 0 && depth > 0) {
+          if (code[i] === char) depth++;
+          else if (code[i] === openChar) depth--;
+          i--;
+        }
+        if (depth === 0) return { open: i + 1, close: pos };
+      }
+    }
+    return null;
+  }, []);
+
+  // Update bracket matching on cursor change
+  const updateBracketMatching = useCallback(() => {
+    if (!textareaRef.current) return;
+    const pos = textareaRef.current.selectionStart;
+    const match = findMatchingBracket(value, pos) || findMatchingBracket(value, pos - 1);
+    setMatchedBracket(match);
+  }, [value, findMatchingBracket]);
+
+  // Extract variables from current code
   const extractVariables = useCallback((code: string): Suggestion[] => {
     const varMatches = code.matchAll(/(?:let|const|var)\s+(\w+)/g);
     const vars: Suggestion[] = [];
@@ -146,6 +353,42 @@ export const InlineCodeEditor = ({ value, onChange, placeholder, className }: In
     };
   }, []);
 
+  // Get current line for AI context
+  const getCurrentLine = useCallback((text: string, cursorPos: number): string => {
+    let lineStart = cursorPos;
+    while (lineStart > 0 && text[lineStart - 1] !== "\n") lineStart--;
+    let lineEnd = cursorPos;
+    while (lineEnd < text.length && text[lineEnd] !== "\n") lineEnd++;
+    return text.slice(lineStart, lineEnd);
+  }, []);
+
+  // Fetch AI suggestions
+  const fetchAISuggestions = useCallback(async (code: string, currentLine: string): Promise<Suggestion[]> => {
+    try {
+      const response = await supabase.functions.invoke("analyze-code", {
+        body: {
+          language: "javascript",
+          user_code: code,
+          suggest_completions: true,
+          current_line: currentLine,
+        },
+      });
+
+      if (response.error) return [];
+      
+      const suggestions = response.data?.suggestions || [];
+      return suggestions.slice(0, 3).map((s: { label: string; detail: string; insertText: string }) => ({
+        label: s.label || "AI suggestion",
+        detail: s.detail || "AI-powered completion",
+        insertText: s.insertText || s.label,
+        kind: "ai" as const,
+        isAI: true,
+      }));
+    } catch {
+      return [];
+    }
+  }, []);
+
   // Filter suggestions based on current input
   const filterSuggestions = useCallback((word: string, code: string): Suggestion[] => {
     if (!word || word.length < 1) return [];
@@ -157,7 +400,6 @@ export const InlineCodeEditor = ({ value, onChange, placeholder, className }: In
     return allSuggestions
       .filter(s => s.label.toLowerCase().includes(lowerWord))
       .sort((a, b) => {
-        // Prioritize exact prefix matches
         const aStarts = a.label.toLowerCase().startsWith(lowerWord);
         const bStarts = b.label.toLowerCase().startsWith(lowerWord);
         if (aStarts && !bStarts) return -1;
@@ -175,7 +417,6 @@ export const InlineCodeEditor = ({ value, onChange, placeholder, className }: In
     const mirror = mirrorRef.current;
     const text = textarea.value.substring(0, textarea.selectionStart);
     
-    // Create mirror content
     mirror.textContent = text;
     const span = document.createElement("span");
     span.textContent = "|";
@@ -190,6 +431,69 @@ export const InlineCodeEditor = ({ value, onChange, placeholder, className }: In
       left: Math.min(spanRect.left - mirrorRect.left, rect.width - 250),
     });
   }, []);
+
+  // Handle auto-closing brackets
+  const handleAutoClose = useCallback((e: KeyboardEvent<HTMLTextAreaElement>) => {
+    const textarea = textareaRef.current;
+    if (!textarea) return false;
+
+    const { selectionStart, selectionEnd } = textarea;
+    const char = e.key;
+
+    // Auto-close opening brackets
+    if (BRACKET_PAIRS[char]) {
+      e.preventDefault();
+      const closeChar = BRACKET_PAIRS[char];
+      const selectedText = value.slice(selectionStart, selectionEnd);
+      
+      if (selectedText) {
+        // Wrap selection
+        const newValue = value.slice(0, selectionStart) + char + selectedText + closeChar + value.slice(selectionEnd);
+        onChange(newValue);
+        setTimeout(() => {
+          textarea.selectionStart = selectionStart + 1;
+          textarea.selectionEnd = selectionEnd + 1;
+        }, 0);
+      } else {
+        // Insert pair
+        const newValue = value.slice(0, selectionStart) + char + closeChar + value.slice(selectionEnd);
+        onChange(newValue);
+        setTimeout(() => {
+          textarea.selectionStart = selectionStart + 1;
+          textarea.selectionEnd = selectionStart + 1;
+        }, 0);
+      }
+      return true;
+    }
+
+    // Skip over closing brackets if already there
+    if (CLOSING_BRACKETS.has(char) && value[selectionStart] === char) {
+      e.preventDefault();
+      setTimeout(() => {
+        textarea.selectionStart = selectionStart + 1;
+        textarea.selectionEnd = selectionStart + 1;
+      }, 0);
+      return true;
+    }
+
+    // Handle backspace to delete bracket pairs
+    if (e.key === "Backspace" && selectionStart === selectionEnd && selectionStart > 0) {
+      const prevChar = value[selectionStart - 1];
+      const nextChar = value[selectionStart];
+      if (BRACKET_PAIRS[prevChar] === nextChar) {
+        e.preventDefault();
+        const newValue = value.slice(0, selectionStart - 1) + value.slice(selectionStart + 1);
+        onChange(newValue);
+        setTimeout(() => {
+          textarea.selectionStart = selectionStart - 1;
+          textarea.selectionEnd = selectionStart - 1;
+        }, 0);
+        return true;
+      }
+    }
+
+    return false;
+  }, [value, onChange]);
 
   // Handle input changes
   const handleChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -206,7 +510,30 @@ export const InlineCodeEditor = ({ value, onChange, placeholder, className }: In
     setShowSuggestions(filtered.length > 0);
     
     setTimeout(updateCursorPosition, 0);
-  }, [onChange, getCurrentWord, filterSuggestions, updateCursorPosition]);
+    setTimeout(updateBracketMatching, 0);
+
+    // Debounced AI suggestions
+    if (aiDebounceRef.current) {
+      clearTimeout(aiDebounceRef.current);
+    }
+    
+    if (word.length >= 2) {
+      aiDebounceRef.current = setTimeout(async () => {
+        setIsLoadingAI(true);
+        const currentLine = getCurrentLine(newValue, cursorPos);
+        const aiSuggestions = await fetchAISuggestions(newValue, currentLine);
+        setIsLoadingAI(false);
+        
+        if (aiSuggestions.length > 0) {
+          setSuggestions(prev => {
+            const nonAI = prev.filter(s => !s.isAI);
+            return [...aiSuggestions, ...nonAI].slice(0, 12);
+          });
+          setShowSuggestions(true);
+        }
+      }, 500);
+    }
+  }, [onChange, getCurrentWord, filterSuggestions, updateCursorPosition, updateBracketMatching, getCurrentLine, fetchAISuggestions]);
 
   // Apply selected suggestion
   const applySuggestion = useCallback((suggestion: Suggestion) => {
@@ -214,17 +541,9 @@ export const InlineCodeEditor = ({ value, onChange, placeholder, className }: In
     
     const textarea = textareaRef.current;
     const cursorPos = textarea.selectionStart;
-    const { word, startIndex } = getCurrentWord(value, cursorPos);
+    const { startIndex } = getCurrentWord(value, cursorPos);
     
-    // Calculate what part of the suggestion to insert
     let insertText = suggestion.insertText;
-    if (word.startsWith(".") && suggestion.insertText.startsWith(".")) {
-      // Don't duplicate the dot
-      insertText = suggestion.insertText;
-    } else if (!word.startsWith(".") && suggestion.insertText.startsWith(".")) {
-      // Adding method to existing variable
-      insertText = suggestion.insertText;
-    }
     
     const newValue = value.slice(0, startIndex) + insertText + value.slice(cursorPos);
     onChange(newValue);
@@ -232,11 +551,9 @@ export const InlineCodeEditor = ({ value, onChange, placeholder, className }: In
     setShowSuggestions(false);
     setSuggestions([]);
     
-    // Set cursor position after insertion
     setTimeout(() => {
       if (textareaRef.current) {
         const newCursorPos = startIndex + insertText.length;
-        // Position cursor inside parentheses if applicable
         const parenIndex = insertText.indexOf("()");
         if (parenIndex !== -1) {
           textareaRef.current.selectionStart = startIndex + parenIndex + 1;
@@ -250,32 +567,49 @@ export const InlineCodeEditor = ({ value, onChange, placeholder, className }: In
     }, 0);
   }, [value, onChange, getCurrentWord]);
 
-  // Handle keyboard navigation
+  // Handle keyboard events
   const handleKeyDown = useCallback((e: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (!showSuggestions || suggestions.length === 0) return;
-    
-    switch (e.key) {
-      case "ArrowDown":
-        e.preventDefault();
-        setSelectedIndex((prev) => (prev + 1) % suggestions.length);
-        break;
-      case "ArrowUp":
-        e.preventDefault();
-        setSelectedIndex((prev) => (prev - 1 + suggestions.length) % suggestions.length);
-        break;
-      case "Tab":
-      case "Enter":
-        if (showSuggestions && suggestions[selectedIndex]) {
+    // Handle auto-closing first
+    if (handleAutoClose(e)) return;
+
+    // Handle suggestion navigation
+    if (showSuggestions && suggestions.length > 0) {
+      switch (e.key) {
+        case "ArrowDown":
           e.preventDefault();
-          applySuggestion(suggestions[selectedIndex]);
-        }
-        break;
-      case "Escape":
-        e.preventDefault();
-        setShowSuggestions(false);
-        break;
+          setSelectedIndex((prev) => (prev + 1) % suggestions.length);
+          return;
+        case "ArrowUp":
+          e.preventDefault();
+          setSelectedIndex((prev) => (prev - 1 + suggestions.length) % suggestions.length);
+          return;
+        case "Tab":
+        case "Enter":
+          if (suggestions[selectedIndex]) {
+            e.preventDefault();
+            applySuggestion(suggestions[selectedIndex]);
+          }
+          return;
+        case "Escape":
+          e.preventDefault();
+          setShowSuggestions(false);
+          return;
+      }
     }
-  }, [showSuggestions, suggestions, selectedIndex, applySuggestion]);
+
+    // Update bracket matching on arrow keys
+    if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(e.key)) {
+      setTimeout(updateBracketMatching, 0);
+    }
+  }, [showSuggestions, suggestions, selectedIndex, applySuggestion, handleAutoClose, updateBracketMatching]);
+
+  // Sync scroll between textarea and highlight overlay
+  const handleScroll = useCallback(() => {
+    if (textareaRef.current && highlightRef.current) {
+      highlightRef.current.scrollTop = textareaRef.current.scrollTop;
+      highlightRef.current.scrollLeft = textareaRef.current.scrollLeft;
+    }
+  }, []);
 
   // Close suggestions when clicking outside
   useEffect(() => {
@@ -302,6 +636,15 @@ export const InlineCodeEditor = ({ value, onChange, placeholder, className }: In
     }
   }, [selectedIndex, showSuggestions]);
 
+  // Cleanup AI debounce on unmount
+  useEffect(() => {
+    return () => {
+      if (aiDebounceRef.current) {
+        clearTimeout(aiDebounceRef.current);
+      }
+    };
+  }, []);
+
   return (
     <div className={cn("relative", className)}>
       {/* Hidden mirror div for cursor position calculation */}
@@ -316,15 +659,38 @@ export const InlineCodeEditor = ({ value, onChange, placeholder, className }: In
         aria-hidden="true"
       />
       
+      {/* Syntax highlighting overlay */}
+      <div
+        ref={highlightRef}
+        className="absolute inset-0 p-3 font-mono text-sm whitespace-pre-wrap break-words overflow-hidden pointer-events-none z-0"
+        style={{ lineHeight: "1.5" }}
+        dangerouslySetInnerHTML={{ __html: highlightedCode || `<span class="text-muted-foreground">${placeholder || ""}</span>` }}
+      />
+      
+      {/* Textarea (transparent text, visible caret) */}
       <textarea
         ref={textareaRef}
         value={value}
         onChange={handleChange}
         onKeyDown={handleKeyDown}
-        placeholder={placeholder}
-        className="w-full min-h-[200px] md:min-h-[300px] p-3 font-mono text-sm bg-background border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring resize-y"
+        onScroll={handleScroll}
+        onClick={updateBracketMatching}
+        placeholder=""
+        className="w-full min-h-[200px] md:min-h-[300px] p-3 font-mono text-sm bg-transparent border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring resize-y relative z-10"
+        style={{ 
+          caretColor: "hsl(var(--foreground))",
+          color: "transparent",
+          lineHeight: "1.5",
+        }}
         spellCheck={false}
       />
+
+      {/* Bracket matching indicator */}
+      {matchedBracket && (
+        <div className="absolute bottom-2 right-2 text-xs text-muted-foreground bg-muted/80 px-2 py-1 rounded">
+          Brackets matched: {value[matchedBracket.open]} ... {value[matchedBracket.close]}
+        </div>
+      )}
       
       {/* Suggestions popup */}
       {showSuggestions && suggestions.length > 0 && (
@@ -334,12 +700,19 @@ export const InlineCodeEditor = ({ value, onChange, placeholder, className }: In
           style={{
             top: cursorPosition.top,
             left: cursorPosition.left,
-            minWidth: "240px",
-            maxWidth: "320px",
+            minWidth: "280px",
+            maxWidth: "360px",
           }}
         >
-          <ScrollArea className="max-h-[200px]">
+          <ScrollArea className="max-h-[240px]">
             <div className="py-1">
+              {/* AI suggestions section */}
+              {suggestions.some(s => s.isAI) && (
+                <div className="px-3 py-1 text-xs text-muted-foreground flex items-center gap-1 border-b border-border mb-1">
+                  <Sparkles className="h-3 w-3 text-pink-400" />
+                  AI Suggestions
+                </div>
+              )}
               {suggestions.map((suggestion, index) => (
                 <button
                   key={`${suggestion.label}-${index}`}
@@ -349,7 +722,8 @@ export const InlineCodeEditor = ({ value, onChange, placeholder, className }: In
                     "w-full px-3 py-1.5 text-left flex items-center gap-2 text-sm transition-colors",
                     index === selectedIndex
                       ? "bg-accent text-accent-foreground"
-                      : "hover:bg-accent/50"
+                      : "hover:bg-accent/50",
+                    suggestion.isAI && "bg-pink-500/5"
                   )}
                 >
                   <span className={cn("w-5 text-center", kindColors[suggestion.kind])}>
@@ -357,7 +731,7 @@ export const InlineCodeEditor = ({ value, onChange, placeholder, className }: In
                   </span>
                   <span className="font-mono flex-1 truncate">{suggestion.label}</span>
                   {suggestion.detail && (
-                    <span className="text-xs text-muted-foreground truncate max-w-[100px]">
+                    <span className="text-xs text-muted-foreground truncate max-w-[120px]">
                       {suggestion.detail}
                     </span>
                   )}
@@ -366,6 +740,12 @@ export const InlineCodeEditor = ({ value, onChange, placeholder, className }: In
             </div>
           </ScrollArea>
           <div className="px-3 py-1.5 border-t border-border bg-muted/50 text-xs text-muted-foreground flex items-center gap-2">
+            {isLoadingAI && (
+              <span className="flex items-center gap-1 text-pink-400">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                AI thinking...
+              </span>
+            )}
             <span className="flex items-center gap-1">
               <kbd className="px-1 bg-background rounded text-[10px]">↑↓</kbd> navigate
             </span>
