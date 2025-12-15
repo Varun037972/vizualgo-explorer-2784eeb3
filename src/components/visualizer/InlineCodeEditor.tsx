@@ -1,9 +1,11 @@
 import { useState, useRef, useEffect, useCallback, KeyboardEvent, useMemo } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { Sparkles, Loader2, ChevronRight, ChevronDown, Undo2, Redo2 } from "lucide-react";
+import { Sparkles, Loader2, ChevronRight, ChevronDown, Undo2, Redo2, Search, Replace, X, CaseSensitive, Regex, WholeWord } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Toggle } from "@/components/ui/toggle";
 
 interface Suggestion {
   label: string;
@@ -71,7 +73,9 @@ interface Token { type: TokenType; value: string; }
 
 interface FoldableRegion { startLine: number; endLine: number; type: "function" | "block" | "object"; }
 
-interface HistoryEntry { value: string; cursorPos: number; }
+interface HistoryEntry { value: string; cursorPositions: number[]; }
+
+interface CursorState { pos: number; id: number; }
 
 const JS_KEYWORDS = new Set([
   "let", "const", "var", "function", "return", "if", "else", "for", "while",
@@ -100,13 +104,31 @@ export const InlineCodeEditor = ({ value, onChange, placeholder, className }: In
   const [isLoadingAI, setIsLoadingAI] = useState(false);
   const [matchedBracket, setMatchedBracket] = useState<{ open: number; close: number } | null>(null);
   const [collapsedRegions, setCollapsedRegions] = useState<Set<number>>(new Set());
-  const [history, setHistory] = useState<HistoryEntry[]>([{ value: "", cursorPos: 0 }]);
+  const [history, setHistory] = useState<HistoryEntry[]>([{ value: "", cursorPositions: [0] }]);
   const [historyIndex, setHistoryIndex] = useState(0);
+  
+  // Multi-cursor state
+  const [cursors, setCursors] = useState<CursorState[]>([{ pos: 0, id: 0 }]);
+  const [nextCursorId, setNextCursorId] = useState(1);
+  
+  // Find and replace state
+  const [showFindReplace, setShowFindReplace] = useState(false);
+  const [findText, setFindText] = useState("");
+  const [replaceText, setReplaceText] = useState("");
+  const [useRegex, setUseRegex] = useState(false);
+  const [caseSensitive, setCaseSensitive] = useState(false);
+  const [wholeWord, setWholeWord] = useState(false);
+  const [findMatches, setFindMatches] = useState<{ start: number; end: number }[]>([]);
+  const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
+  
+  // Minimap state
+  const [minimapScrollRatio, setMinimapScrollRatio] = useState(0);
   
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
   const mirrorRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const minimapRef = useRef<HTMLDivElement>(null);
   const aiDebounceRef = useRef<NodeJS.Timeout | null>(null);
   const isUndoRedoRef = useRef(false);
 
@@ -170,6 +192,38 @@ export const InlineCodeEditor = ({ value, onChange, placeholder, className }: In
     
     return visible;
   }, [lines, foldableRegions, collapsedRegions]);
+
+  // Find matches calculation
+  useEffect(() => {
+    if (!findText) {
+      setFindMatches([]);
+      return;
+    }
+
+    try {
+      let pattern: RegExp;
+      if (useRegex) {
+        pattern = new RegExp(findText, caseSensitive ? "g" : "gi");
+      } else {
+        const escaped = findText.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const wordPattern = wholeWord ? `\\b${escaped}\\b` : escaped;
+        pattern = new RegExp(wordPattern, caseSensitive ? "g" : "gi");
+      }
+
+      const matches: { start: number; end: number }[] = [];
+      let match;
+      while ((match = pattern.exec(value)) !== null) {
+        matches.push({ start: match.index, end: match.index + match[0].length });
+        if (match[0].length === 0) break;
+      }
+      setFindMatches(matches);
+      if (matches.length > 0 && currentMatchIndex >= matches.length) {
+        setCurrentMatchIndex(0);
+      }
+    } catch {
+      setFindMatches([]);
+    }
+  }, [findText, value, useRegex, caseSensitive, wholeWord, currentMatchIndex]);
 
   // Toggle fold region
   const toggleFold = useCallback((startLine: number) => {
@@ -265,10 +319,23 @@ export const InlineCodeEditor = ({ value, onChange, placeholder, className }: In
     return tokens;
   }, []);
 
-  // Generate highlighted HTML for a single line
-  const highlightLine = useCallback((lineContent: string): string => {
+  // Generate highlighted HTML for a single line with match highlighting
+  const highlightLine = useCallback((lineContent: string, lineStartIndex: number): string => {
     const tokens = tokenize(lineContent);
+    let charIndex = lineStartIndex;
+    
     return tokens.map((token) => {
+      const tokenStart = charIndex;
+      const tokenEnd = charIndex + token.value.length;
+      charIndex = tokenEnd;
+      
+      // Check if this token overlaps with any find matches
+      const isInMatch = findMatches.some(m => 
+        (tokenStart >= m.start && tokenStart < m.end) ||
+        (tokenEnd > m.start && tokenEnd <= m.end) ||
+        (tokenStart <= m.start && tokenEnd >= m.end)
+      );
+      
       const colorClass = {
         keyword: "text-purple-400", string: "text-green-400", number: "text-orange-400",
         comment: "text-muted-foreground italic", function: "text-yellow-400",
@@ -282,9 +349,11 @@ export const InlineCodeEditor = ({ value, onChange, placeholder, className }: In
         .replace(/>/g, "&gt;")
         .replace(/ /g, "&nbsp;");
       
-      return `<span class="${colorClass}">${escaped}</span>`;
+      const matchClass = isInMatch ? " bg-yellow-400/30 rounded" : "";
+      
+      return `<span class="${colorClass}${matchClass}">${escaped}</span>`;
     }).join("");
-  }, [tokenize]);
+  }, [tokenize, findMatches]);
 
   // Find matching bracket
   const findMatchingBracket = useCallback((code: string, pos: number): { open: number; close: number } | null => {
@@ -326,7 +395,7 @@ export const InlineCodeEditor = ({ value, onChange, placeholder, className }: In
   }, [value, findMatchingBracket]);
 
   // History management for undo/redo
-  const pushToHistory = useCallback((newValue: string, cursorPos: number) => {
+  const pushToHistory = useCallback((newValue: string, cursorPositions: number[]) => {
     if (isUndoRedoRef.current) {
       isUndoRedoRef.current = false;
       return;
@@ -334,7 +403,7 @@ export const InlineCodeEditor = ({ value, onChange, placeholder, className }: In
     
     setHistory(prev => {
       const newHistory = prev.slice(0, historyIndex + 1);
-      newHistory.push({ value: newValue, cursorPos });
+      newHistory.push({ value: newValue, cursorPositions });
       if (newHistory.length > 100) newHistory.shift();
       return newHistory;
     });
@@ -348,10 +417,11 @@ export const InlineCodeEditor = ({ value, onChange, placeholder, className }: In
       const entry = history[newIndex];
       setHistoryIndex(newIndex);
       onChange(entry.value);
+      setCursors(entry.cursorPositions.map((pos, i) => ({ pos, id: i })));
       setTimeout(() => {
-        if (textareaRef.current) {
-          textareaRef.current.selectionStart = entry.cursorPos;
-          textareaRef.current.selectionEnd = entry.cursorPos;
+        if (textareaRef.current && entry.cursorPositions.length > 0) {
+          textareaRef.current.selectionStart = entry.cursorPositions[0];
+          textareaRef.current.selectionEnd = entry.cursorPositions[0];
         }
       }, 0);
     }
@@ -364,10 +434,11 @@ export const InlineCodeEditor = ({ value, onChange, placeholder, className }: In
       const entry = history[newIndex];
       setHistoryIndex(newIndex);
       onChange(entry.value);
+      setCursors(entry.cursorPositions.map((pos, i) => ({ pos, id: i })));
       setTimeout(() => {
-        if (textareaRef.current) {
-          textareaRef.current.selectionStart = entry.cursorPos;
-          textareaRef.current.selectionEnd = entry.cursorPos;
+        if (textareaRef.current && entry.cursorPositions.length > 0) {
+          textareaRef.current.selectionStart = entry.cursorPositions[0];
+          textareaRef.current.selectionEnd = entry.cursorPositions[0];
         }
       }, 0);
     }
@@ -375,6 +446,85 @@ export const InlineCodeEditor = ({ value, onChange, placeholder, className }: In
 
   const canUndo = historyIndex > 0;
   const canRedo = historyIndex < history.length - 1;
+
+  // Find navigation
+  const findNext = useCallback(() => {
+    if (findMatches.length === 0) return;
+    const nextIndex = (currentMatchIndex + 1) % findMatches.length;
+    setCurrentMatchIndex(nextIndex);
+    
+    if (textareaRef.current) {
+      const match = findMatches[nextIndex];
+      textareaRef.current.setSelectionRange(match.start, match.end);
+      textareaRef.current.focus();
+    }
+  }, [findMatches, currentMatchIndex]);
+
+  const findPrevious = useCallback(() => {
+    if (findMatches.length === 0) return;
+    const prevIndex = (currentMatchIndex - 1 + findMatches.length) % findMatches.length;
+    setCurrentMatchIndex(prevIndex);
+    
+    if (textareaRef.current) {
+      const match = findMatches[prevIndex];
+      textareaRef.current.setSelectionRange(match.start, match.end);
+      textareaRef.current.focus();
+    }
+  }, [findMatches, currentMatchIndex]);
+
+  // Replace operations
+  const replaceCurrentMatch = useCallback(() => {
+    if (findMatches.length === 0 || currentMatchIndex >= findMatches.length) return;
+    
+    const match = findMatches[currentMatchIndex];
+    const newValue = value.slice(0, match.start) + replaceText + value.slice(match.end);
+    onChange(newValue);
+    pushToHistory(newValue, [match.start + replaceText.length]);
+  }, [findMatches, currentMatchIndex, replaceText, value, onChange, pushToHistory]);
+
+  const replaceAllMatches = useCallback(() => {
+    if (findMatches.length === 0) return;
+    
+    let newValue = value;
+    let offset = 0;
+    
+    findMatches.forEach(match => {
+      const adjustedStart = match.start + offset;
+      const adjustedEnd = match.end + offset;
+      newValue = newValue.slice(0, adjustedStart) + replaceText + newValue.slice(adjustedEnd);
+      offset += replaceText.length - (match.end - match.start);
+    });
+    
+    onChange(newValue);
+    pushToHistory(newValue, [0]);
+    setFindMatches([]);
+  }, [findMatches, replaceText, value, onChange, pushToHistory]);
+
+  // Multi-cursor: Add cursor
+  const addCursor = useCallback((pos: number) => {
+    const existing = cursors.find(c => c.pos === pos);
+    if (!existing) {
+      setCursors(prev => [...prev, { pos, id: nextCursorId }]);
+      setNextCursorId(prev => prev + 1);
+    }
+  }, [cursors, nextCursorId]);
+
+  // Multi-cursor: Add next occurrence of selection
+  const addNextOccurrence = useCallback(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    
+    if (start !== end) {
+      const selectedText = value.slice(start, end);
+      const nextOccurrence = value.indexOf(selectedText, end);
+      if (nextOccurrence !== -1) {
+        addCursor(nextOccurrence + selectedText.length);
+      }
+    }
+  }, [value, addCursor]);
 
   const extractVariables = useCallback((code: string): Suggestion[] => {
     const varMatches = code.matchAll(/(?:let|const|var)\s+(\w+)/g);
@@ -468,12 +618,12 @@ export const InlineCodeEditor = ({ value, onChange, placeholder, className }: In
       if (selectedText) {
         const newValue = value.slice(0, selectionStart) + char + selectedText + closeChar + value.slice(selectionEnd);
         onChange(newValue);
-        pushToHistory(newValue, selectionStart + 1);
+        pushToHistory(newValue, [selectionStart + 1]);
         setTimeout(() => { textarea.selectionStart = selectionStart + 1; textarea.selectionEnd = selectionEnd + 1; }, 0);
       } else {
         const newValue = value.slice(0, selectionStart) + char + closeChar + value.slice(selectionEnd);
         onChange(newValue);
-        pushToHistory(newValue, selectionStart + 1);
+        pushToHistory(newValue, [selectionStart + 1]);
         setTimeout(() => { textarea.selectionStart = selectionStart + 1; textarea.selectionEnd = selectionStart + 1; }, 0);
       }
       return true;
@@ -492,7 +642,7 @@ export const InlineCodeEditor = ({ value, onChange, placeholder, className }: In
         e.preventDefault();
         const newValue = value.slice(0, selectionStart - 1) + value.slice(selectionStart + 1);
         onChange(newValue);
-        pushToHistory(newValue, selectionStart - 1);
+        pushToHistory(newValue, [selectionStart - 1]);
         setTimeout(() => { textarea.selectionStart = selectionStart - 1; textarea.selectionEnd = selectionStart - 1; }, 0);
         return true;
       }
@@ -506,7 +656,8 @@ export const InlineCodeEditor = ({ value, onChange, placeholder, className }: In
     const cursorPos = e.target.selectionStart;
     
     onChange(newValue);
-    pushToHistory(newValue, cursorPos);
+    pushToHistory(newValue, [cursorPos]);
+    setCursors([{ pos: cursorPos, id: 0 }]);
     
     const { word } = getCurrentWord(newValue, cursorPos);
     const filtered = filterSuggestions(word, newValue);
@@ -548,7 +699,7 @@ export const InlineCodeEditor = ({ value, onChange, placeholder, className }: In
     const insertText = suggestion.insertText;
     const newValue = value.slice(0, startIndex) + insertText + value.slice(cursorPos);
     onChange(newValue);
-    pushToHistory(newValue, startIndex + insertText.length);
+    pushToHistory(newValue, [startIndex + insertText.length]);
     
     setShowSuggestions(false);
     setSuggestions([]);
@@ -582,6 +733,42 @@ export const InlineCodeEditor = ({ value, onChange, placeholder, className }: In
       redo();
       return;
     }
+    
+    // Find/Replace shortcuts
+    if ((e.ctrlKey || e.metaKey) && e.key === "f") {
+      e.preventDefault();
+      setShowFindReplace(true);
+      return;
+    }
+    if ((e.ctrlKey || e.metaKey) && e.key === "h") {
+      e.preventDefault();
+      setShowFindReplace(true);
+      return;
+    }
+    
+    // Multi-cursor: Add next occurrence (Ctrl+D)
+    if ((e.ctrlKey || e.metaKey) && e.key === "d") {
+      e.preventDefault();
+      addNextOccurrence();
+      return;
+    }
+    
+    // Escape to clear multi-cursors or close find/replace
+    if (e.key === "Escape") {
+      if (showSuggestions) {
+        e.preventDefault();
+        setShowSuggestions(false);
+        return;
+      }
+      if (cursors.length > 1) {
+        setCursors([cursors[0]]);
+        return;
+      }
+      if (showFindReplace) {
+        setShowFindReplace(false);
+        return;
+      }
+    }
 
     if (handleAutoClose(e)) return;
 
@@ -602,17 +789,25 @@ export const InlineCodeEditor = ({ value, onChange, placeholder, className }: In
             applySuggestion(suggestions[selectedIndex]);
           }
           return;
-        case "Escape":
-          e.preventDefault();
-          setShowSuggestions(false);
-          return;
       }
     }
 
     if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(e.key)) {
       setTimeout(updateBracketMatching, 0);
     }
-  }, [showSuggestions, suggestions, selectedIndex, applySuggestion, handleAutoClose, updateBracketMatching, undo, redo]);
+  }, [showSuggestions, suggestions, selectedIndex, applySuggestion, handleAutoClose, updateBracketMatching, undo, redo, addNextOccurrence, cursors, showFindReplace]);
+
+  // Handle click for multi-cursor
+  const handleClick = useCallback((e: React.MouseEvent<HTMLTextAreaElement>) => {
+    if (e.altKey && textareaRef.current) {
+      e.preventDefault();
+      const cursorPos = textareaRef.current.selectionStart;
+      addCursor(cursorPos);
+    } else if (!e.shiftKey && textareaRef.current) {
+      setCursors([{ pos: textareaRef.current.selectionStart, id: 0 }]);
+    }
+    updateBracketMatching();
+  }, [addCursor, updateBracketMatching]);
 
   const handleScroll = useCallback(() => {
     if (textareaRef.current && containerRef.current) {
@@ -620,8 +815,52 @@ export const InlineCodeEditor = ({ value, onChange, placeholder, className }: In
       const highlightOverlay = containerRef.current.querySelector(".highlight-overlay") as HTMLElement;
       if (lineNumbers) lineNumbers.scrollTop = textareaRef.current.scrollTop;
       if (highlightOverlay) highlightOverlay.scrollTop = textareaRef.current.scrollTop;
+      
+      // Update minimap scroll indicator
+      const { scrollTop, scrollHeight, clientHeight } = textareaRef.current;
+      const ratio = scrollHeight > clientHeight ? scrollTop / (scrollHeight - clientHeight) : 0;
+      setMinimapScrollRatio(ratio);
     }
   }, []);
+
+  // Minimap click to scroll
+  const handleMinimapClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (!minimapRef.current || !textareaRef.current) return;
+    
+    const rect = minimapRef.current.getBoundingClientRect();
+    const clickY = e.clientY - rect.top;
+    const ratio = clickY / rect.height;
+    
+    const { scrollHeight, clientHeight } = textareaRef.current;
+    textareaRef.current.scrollTop = ratio * (scrollHeight - clientHeight);
+  }, []);
+
+  // Minimap content
+  const minimapLines = useMemo(() => {
+    return lines.map((line, i) => {
+      const tokens = tokenize(line);
+      return (
+        <div key={i} className="flex h-[3px] mb-px">
+          {tokens.map((token, j) => (
+            <div
+              key={j}
+              className={cn(
+                "h-full opacity-60",
+                token.type === "keyword" && "bg-purple-400",
+                token.type === "string" && "bg-green-400",
+                token.type === "number" && "bg-orange-400",
+                token.type === "comment" && "bg-muted-foreground",
+                token.type === "function" && "bg-yellow-400",
+                token.type === "variable" && "bg-blue-300",
+                (token.type === "default" || token.type === "operator") && "bg-foreground/30"
+              )}
+              style={{ width: Math.max(token.value.length * 0.6, 1) }}
+            />
+          ))}
+        </div>
+      );
+    });
+  }, [lines, tokenize]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -650,30 +889,139 @@ export const InlineCodeEditor = ({ value, onChange, placeholder, className }: In
   // Initialize history with initial value
   useEffect(() => {
     if (history.length === 1 && history[0].value === "" && value !== "") {
-      setHistory([{ value, cursorPos: 0 }]);
+      setHistory([{ value, cursorPositions: [0] }]);
     }
   }, []);
 
+  // Calculate line start indices for highlight matching
+  const lineStartIndices = useMemo(() => {
+    const indices: number[] = [0];
+    let currentIndex = 0;
+    for (const line of lines) {
+      currentIndex += line.length + 1;
+      indices.push(currentIndex);
+    }
+    return indices;
+  }, [lines]);
+
   return (
     <div className={cn("relative", className)} ref={containerRef}>
-      {/* Toolbar with undo/redo */}
-      <div className="flex items-center gap-1 mb-2 px-1">
+      {/* Toolbar with undo/redo and find */}
+      <div className="flex items-center gap-1 mb-2 px-1 flex-wrap">
         <Button variant="ghost" size="sm" onClick={undo} disabled={!canUndo} className="h-7 px-2">
           <Undo2 className="h-3.5 w-3.5 mr-1" />
-          <span className="text-xs">Undo</span>
-          <kbd className="ml-1.5 text-[10px] text-muted-foreground">Ctrl+Z</kbd>
+          <span className="text-xs hidden sm:inline">Undo</span>
+          <kbd className="ml-1.5 text-[10px] text-muted-foreground hidden sm:inline">⌘Z</kbd>
         </Button>
         <Button variant="ghost" size="sm" onClick={redo} disabled={!canRedo} className="h-7 px-2">
           <Redo2 className="h-3.5 w-3.5 mr-1" />
-          <span className="text-xs">Redo</span>
-          <kbd className="ml-1.5 text-[10px] text-muted-foreground">Ctrl+Shift+Z</kbd>
+          <span className="text-xs hidden sm:inline">Redo</span>
+          <kbd className="ml-1.5 text-[10px] text-muted-foreground hidden sm:inline">⌘⇧Z</kbd>
         </Button>
+        <div className="w-px h-4 bg-border mx-1" />
+        <Button 
+          variant={showFindReplace ? "secondary" : "ghost"} 
+          size="sm" 
+          onClick={() => setShowFindReplace(!showFindReplace)} 
+          className="h-7 px-2"
+        >
+          <Search className="h-3.5 w-3.5 mr-1" />
+          <span className="text-xs hidden sm:inline">Find</span>
+          <kbd className="ml-1.5 text-[10px] text-muted-foreground hidden sm:inline">⌘F</kbd>
+        </Button>
+        <div className="flex-1" />
+        {cursors.length > 1 && (
+          <span className="text-xs text-muted-foreground">
+            {cursors.length} cursors
+          </span>
+        )}
         {matchedBracket && (
-          <span className="ml-auto text-xs text-muted-foreground">
+          <span className="text-xs text-muted-foreground hidden sm:inline">
             Brackets matched
           </span>
         )}
+        <span className="text-[10px] text-muted-foreground hidden md:inline">
+          Alt+Click: multi-cursor • ⌘D: add next
+        </span>
       </div>
+
+      {/* Find and Replace Panel */}
+      {showFindReplace && (
+        <div className="flex flex-col gap-2 mb-2 p-2 bg-muted/50 rounded-md border border-border">
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="relative flex-1 min-w-[150px]">
+              <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+              <Input
+                value={findText}
+                onChange={(e) => setFindText(e.target.value)}
+                placeholder="Find..."
+                className="h-7 pl-7 text-xs"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.shiftKey ? findPrevious() : findNext();
+                  }
+                }}
+              />
+            </div>
+            <Toggle
+              pressed={useRegex}
+              onPressedChange={setUseRegex}
+              size="sm"
+              className="h-7 w-7 p-0"
+              title="Use Regex"
+            >
+              <Regex className="h-3 w-3" />
+            </Toggle>
+            <Toggle
+              pressed={caseSensitive}
+              onPressedChange={setCaseSensitive}
+              size="sm"
+              className="h-7 w-7 p-0"
+              title="Case Sensitive"
+            >
+              <CaseSensitive className="h-3 w-3" />
+            </Toggle>
+            <Toggle
+              pressed={wholeWord}
+              onPressedChange={setWholeWord}
+              size="sm"
+              className="h-7 w-7 p-0"
+              title="Whole Word"
+            >
+              <WholeWord className="h-3 w-3" />
+            </Toggle>
+            <span className="text-xs text-muted-foreground whitespace-nowrap">
+              {findMatches.length > 0 ? `${currentMatchIndex + 1}/${findMatches.length}` : "No results"}
+            </span>
+            <Button variant="ghost" size="sm" onClick={findPrevious} className="h-7 px-2" disabled={findMatches.length === 0}>
+              ↑
+            </Button>
+            <Button variant="ghost" size="sm" onClick={findNext} className="h-7 px-2" disabled={findMatches.length === 0}>
+              ↓
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setShowFindReplace(false)} className="h-7 w-7 p-0">
+              <X className="h-3 w-3" />
+            </Button>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="relative flex-1 min-w-[150px]">
+              <Replace className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+              <Input
+                value={replaceText}
+                onChange={(e) => setReplaceText(e.target.value)}
+                placeholder="Replace..."
+                className="h-7 pl-7 text-xs"
+              />
+            </div>
+            <Button variant="outline" size="sm" onClick={replaceCurrentMatch} className="h-7 text-xs" disabled={findMatches.length === 0}>
+              Replace
+            </Button>
+            <Button variant="outline" size="sm" onClick={replaceAllMatches} className="h-7 text-xs" disabled={findMatches.length === 0}>
+              Replace All
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Hidden mirror div for cursor position calculation */}
       <div
@@ -728,14 +1076,38 @@ export const InlineCodeEditor = ({ value, onChange, placeholder, className }: In
             className="highlight-overlay absolute inset-0 py-3 px-3 font-mono text-sm whitespace-pre overflow-hidden pointer-events-none"
             style={{ lineHeight: "1.5" }}
           >
-            {visibleLines.map((line, index) => (
-              <div 
-                key={`${line.lineNumber}-${index}`} 
-                className={cn("h-[1.5em]", line.isCollapsed && "text-muted-foreground italic")}
-                dangerouslySetInnerHTML={{ __html: highlightLine(line.content) || "&nbsp;" }}
-              />
-            ))}
+            {visibleLines.map((line, index) => {
+              const actualLineIndex = line.lineNumber - 1;
+              const lineStartIndex = lineStartIndices[actualLineIndex] || 0;
+              
+              return (
+                <div 
+                  key={`${line.lineNumber}-${index}`} 
+                  className={cn("h-[1.5em]", line.isCollapsed && "text-muted-foreground italic")}
+                  dangerouslySetInnerHTML={{ __html: highlightLine(line.content, lineStartIndex) || "&nbsp;" }}
+                />
+              );
+            })}
           </div>
+          
+          {/* Multi-cursor indicators */}
+          {cursors.length > 1 && cursors.map((cursor) => {
+            const textBefore = value.substring(0, cursor.pos);
+            const linesB = textBefore.split("\n");
+            const lineIndex = linesB.length - 1;
+            const charIndex = linesB[linesB.length - 1].length;
+            
+            return (
+              <div
+                key={cursor.id}
+                className="absolute w-0.5 h-[1.3em] bg-primary animate-pulse pointer-events-none z-20"
+                style={{
+                  top: `calc(0.75rem + ${lineIndex * 1.5}em)`,
+                  left: `calc(0.75rem + ${charIndex * 0.6}em)`,
+                }}
+              />
+            );
+          })}
           
           {/* Textarea */}
           <textarea
@@ -744,11 +1116,33 @@ export const InlineCodeEditor = ({ value, onChange, placeholder, className }: In
             onChange={handleChange}
             onKeyDown={handleKeyDown}
             onScroll={handleScroll}
-            onClick={updateBracketMatching}
+            onClick={handleClick}
             placeholder={placeholder}
             className="w-full min-h-[200px] md:min-h-[300px] py-3 px-3 font-mono text-sm bg-transparent focus:outline-none focus:ring-2 focus:ring-ring resize-y relative z-10"
             style={{ caretColor: "hsl(var(--foreground))", color: "transparent", lineHeight: "1.5" }}
             spellCheck={false}
+          />
+        </div>
+
+        {/* Minimap */}
+        <div
+          ref={minimapRef}
+          className="hidden md:block w-16 flex-shrink-0 bg-muted/20 border-l border-border cursor-pointer overflow-hidden relative"
+          onClick={handleMinimapClick}
+        >
+          <div className="p-1 overflow-hidden" style={{ maxHeight: "100%" }}>
+            {minimapLines}
+          </div>
+          
+          {/* Viewport indicator */}
+          <div
+            className="absolute left-0 right-0 bg-foreground/10 border border-foreground/20 rounded-sm pointer-events-none"
+            style={{
+              top: `${minimapScrollRatio * 80}%`,
+              height: "20%",
+              maxHeight: "40px",
+              minHeight: "10px"
+            }}
           />
         </div>
       </div>
