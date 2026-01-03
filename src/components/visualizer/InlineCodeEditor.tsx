@@ -1,11 +1,12 @@
-import { useState, useRef, useEffect, useCallback, KeyboardEvent, useMemo } from "react";
+import { useState, useRef, useEffect, useCallback, KeyboardEvent, useMemo, DragEvent } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { Sparkles, Loader2, ChevronRight, ChevronDown, Undo2, Redo2, Search, Replace, X, CaseSensitive, Regex, WholeWord } from "lucide-react";
+import { Sparkles, Loader2, ChevronRight, ChevronDown, Undo2, Redo2, Search, Replace, X, CaseSensitive, Regex, WholeWord, Code2, GripVertical, ChevronLeft, Zap, Binary, TreeDeciduous, Network, Layers } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Toggle } from "@/components/ui/toggle";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface Suggestion {
   label: string;
@@ -89,6 +90,316 @@ const JS_BUILTINS = new Set([
   "Date", "JSON", "Promise", "Map", "Set", "Symbol", "Error"
 ]);
 
+interface CodeSnippet {
+  id: string;
+  name: string;
+  description: string;
+  category: "sorting" | "searching" | "trees" | "graphs" | "dynamic";
+  code: string;
+  icon: typeof Zap;
+}
+
+const CODE_SNIPPETS: CodeSnippet[] = [
+  {
+    id: "bubble-sort",
+    name: "Bubble Sort",
+    description: "O(n²) comparison sort",
+    category: "sorting",
+    icon: Layers,
+    code: `function bubbleSort(arr) {
+  const n = arr.length;
+  for (let i = 0; i < n - 1; i++) {
+    for (let j = 0; j < n - i - 1; j++) {
+      if (arr[j] > arr[j + 1]) {
+        [arr[j], arr[j + 1]] = [arr[j + 1], arr[j]];
+      }
+    }
+  }
+  return arr;
+}`
+  },
+  {
+    id: "quick-sort",
+    name: "Quick Sort",
+    description: "O(n log n) divide & conquer",
+    category: "sorting",
+    icon: Zap,
+    code: `function quickSort(arr, low = 0, high = arr.length - 1) {
+  if (low < high) {
+    const pivot = partition(arr, low, high);
+    quickSort(arr, low, pivot - 1);
+    quickSort(arr, pivot + 1, high);
+  }
+  return arr;
+}
+
+function partition(arr, low, high) {
+  const pivot = arr[high];
+  let i = low - 1;
+  for (let j = low; j < high; j++) {
+    if (arr[j] < pivot) {
+      i++;
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+  }
+  [arr[i + 1], arr[high]] = [arr[high], arr[i + 1]];
+  return i + 1;
+}`
+  },
+  {
+    id: "merge-sort",
+    name: "Merge Sort",
+    description: "O(n log n) stable sort",
+    category: "sorting",
+    icon: Layers,
+    code: `function mergeSort(arr) {
+  if (arr.length <= 1) return arr;
+  
+  const mid = Math.floor(arr.length / 2);
+  const left = mergeSort(arr.slice(0, mid));
+  const right = mergeSort(arr.slice(mid));
+  
+  return merge(left, right);
+}
+
+function merge(left, right) {
+  const result = [];
+  let i = 0, j = 0;
+  
+  while (i < left.length && j < right.length) {
+    if (left[i] <= right[j]) result.push(left[i++]);
+    else result.push(right[j++]);
+  }
+  
+  return result.concat(left.slice(i)).concat(right.slice(j));
+}`
+  },
+  {
+    id: "binary-search",
+    name: "Binary Search",
+    description: "O(log n) search",
+    category: "searching",
+    icon: Binary,
+    code: `function binarySearch(arr, target) {
+  let left = 0;
+  let right = arr.length - 1;
+  
+  while (left <= right) {
+    const mid = Math.floor((left + right) / 2);
+    
+    if (arr[mid] === target) return mid;
+    if (arr[mid] < target) left = mid + 1;
+    else right = mid - 1;
+  }
+  
+  return -1; // Not found
+}`
+  },
+  {
+    id: "linear-search",
+    name: "Linear Search",
+    description: "O(n) sequential search",
+    category: "searching",
+    icon: Search,
+    code: `function linearSearch(arr, target) {
+  for (let i = 0; i < arr.length; i++) {
+    if (arr[i] === target) return i;
+  }
+  return -1; // Not found
+}`
+  },
+  {
+    id: "bst-insert",
+    name: "BST Insert",
+    description: "Binary search tree insertion",
+    category: "trees",
+    icon: TreeDeciduous,
+    code: `class TreeNode {
+  constructor(value) {
+    this.value = value;
+    this.left = null;
+    this.right = null;
+  }
+}
+
+function insert(root, value) {
+  if (!root) return new TreeNode(value);
+  
+  if (value < root.value) {
+    root.left = insert(root.left, value);
+  } else {
+    root.right = insert(root.right, value);
+  }
+  
+  return root;
+}`
+  },
+  {
+    id: "tree-traversal",
+    name: "Tree Traversals",
+    description: "In/Pre/Post order traversal",
+    category: "trees",
+    icon: TreeDeciduous,
+    code: `function inorder(node, result = []) {
+  if (node) {
+    inorder(node.left, result);
+    result.push(node.value);
+    inorder(node.right, result);
+  }
+  return result;
+}
+
+function preorder(node, result = []) {
+  if (node) {
+    result.push(node.value);
+    preorder(node.left, result);
+    preorder(node.right, result);
+  }
+  return result;
+}
+
+function postorder(node, result = []) {
+  if (node) {
+    postorder(node.left, result);
+    postorder(node.right, result);
+    result.push(node.value);
+  }
+  return result;
+}`
+  },
+  {
+    id: "bfs",
+    name: "BFS",
+    description: "Breadth-first search",
+    category: "graphs",
+    icon: Network,
+    code: `function bfs(graph, start) {
+  const visited = new Set();
+  const queue = [start];
+  const result = [];
+  
+  visited.add(start);
+  
+  while (queue.length > 0) {
+    const node = queue.shift();
+    result.push(node);
+    
+    for (const neighbor of graph[node] || []) {
+      if (!visited.has(neighbor)) {
+        visited.add(neighbor);
+        queue.push(neighbor);
+      }
+    }
+  }
+  
+  return result;
+}`
+  },
+  {
+    id: "dfs",
+    name: "DFS",
+    description: "Depth-first search",
+    category: "graphs",
+    icon: Network,
+    code: `function dfs(graph, start, visited = new Set()) {
+  const result = [];
+  
+  function explore(node) {
+    if (visited.has(node)) return;
+    visited.add(node);
+    result.push(node);
+    
+    for (const neighbor of graph[node] || []) {
+      explore(neighbor);
+    }
+  }
+  
+  explore(start);
+  return result;
+}`
+  },
+  {
+    id: "fibonacci-dp",
+    name: "Fibonacci (DP)",
+    description: "Dynamic programming approach",
+    category: "dynamic",
+    icon: Zap,
+    code: `function fibonacci(n) {
+  if (n <= 1) return n;
+  
+  const dp = new Array(n + 1);
+  dp[0] = 0;
+  dp[1] = 1;
+  
+  for (let i = 2; i <= n; i++) {
+    dp[i] = dp[i - 1] + dp[i - 2];
+  }
+  
+  return dp[n];
+}`
+  },
+  {
+    id: "knapsack",
+    name: "0/1 Knapsack",
+    description: "Classic DP problem",
+    category: "dynamic",
+    icon: Layers,
+    code: `function knapsack(weights, values, capacity) {
+  const n = weights.length;
+  const dp = Array(n + 1).fill(null)
+    .map(() => Array(capacity + 1).fill(0));
+  
+  for (let i = 1; i <= n; i++) {
+    for (let w = 0; w <= capacity; w++) {
+      if (weights[i - 1] <= w) {
+        dp[i][w] = Math.max(
+          dp[i - 1][w],
+          values[i - 1] + dp[i - 1][w - weights[i - 1]]
+        );
+      } else {
+        dp[i][w] = dp[i - 1][w];
+      }
+    }
+  }
+  
+  return dp[n][capacity];
+}`
+  },
+  {
+    id: "two-pointers",
+    name: "Two Pointers",
+    description: "Two sum in sorted array",
+    category: "searching",
+    icon: Binary,
+    code: `function twoSum(arr, target) {
+  let left = 0;
+  let right = arr.length - 1;
+  
+  while (left < right) {
+    const sum = arr[left] + arr[right];
+    
+    if (sum === target) {
+      return [left, right];
+    } else if (sum < target) {
+      left++;
+    } else {
+      right--;
+    }
+  }
+  
+  return null; // No pair found
+}`
+  }
+];
+
+const SNIPPET_CATEGORIES = [
+  { id: "sorting", name: "Sorting", icon: Layers },
+  { id: "searching", name: "Searching", icon: Binary },
+  { id: "trees", name: "Trees", icon: TreeDeciduous },
+  { id: "graphs", name: "Graphs", icon: Network },
+  { id: "dynamic", name: "Dynamic", icon: Zap },
+] as const;
+
 interface InlineCodeEditorProps {
   value: string;
   onChange: (value: string) => void;
@@ -123,6 +434,12 @@ export const InlineCodeEditor = ({ value, onChange, placeholder, className }: In
   
   // Minimap state
   const [minimapScrollRatio, setMinimapScrollRatio] = useState(0);
+  
+  // Snippets panel state
+  const [showSnippetsPanel, setShowSnippetsPanel] = useState(false);
+  const [snippetCategory, setSnippetCategory] = useState<string>("sorting");
+  const [draggingSnippet, setDraggingSnippet] = useState<CodeSnippet | null>(null);
+  const [isDragOver, setIsDragOver] = useState(false);
   
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
@@ -862,6 +1179,79 @@ export const InlineCodeEditor = ({ value, onChange, placeholder, className }: In
     });
   }, [lines, tokenize]);
 
+  // Drag and drop handlers for snippets
+  const handleDragStart = useCallback((e: DragEvent<HTMLDivElement>, snippet: CodeSnippet) => {
+    e.dataTransfer.setData("text/plain", snippet.code);
+    e.dataTransfer.effectAllowed = "copy";
+    setDraggingSnippet(snippet);
+  }, []);
+
+  const handleDragEnd = useCallback(() => {
+    setDraggingSnippet(null);
+    setIsDragOver(false);
+  }, []);
+
+  const handleDragOver = useCallback((e: DragEvent<HTMLTextAreaElement>) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "copy";
+    setIsDragOver(true);
+  }, []);
+
+  const handleDragLeave = useCallback(() => {
+    setIsDragOver(false);
+  }, []);
+
+  const handleDrop = useCallback((e: DragEvent<HTMLTextAreaElement>) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    setDraggingSnippet(null);
+    
+    const droppedCode = e.dataTransfer.getData("text/plain");
+    if (!droppedCode || !textareaRef.current) return;
+    
+    const cursorPos = textareaRef.current.selectionStart;
+    const prefix = value.endsWith("\n") || value === "" ? "" : "\n\n";
+    const suffix = "\n";
+    const insertCode = prefix + droppedCode + suffix;
+    
+    const newValue = value.slice(0, cursorPos) + insertCode + value.slice(cursorPos);
+    onChange(newValue);
+    pushToHistory(newValue, [cursorPos + insertCode.length]);
+    
+    setTimeout(() => {
+      if (textareaRef.current) {
+        textareaRef.current.selectionStart = cursorPos + insertCode.length;
+        textareaRef.current.selectionEnd = cursorPos + insertCode.length;
+        textareaRef.current.focus();
+      }
+    }, 0);
+  }, [value, onChange, pushToHistory]);
+
+  const insertSnippet = useCallback((snippet: CodeSnippet) => {
+    if (!textareaRef.current) return;
+    
+    const cursorPos = textareaRef.current.selectionStart;
+    const prefix = value.endsWith("\n") || value === "" ? "" : "\n\n";
+    const suffix = "\n";
+    const insertCode = prefix + snippet.code + suffix;
+    
+    const newValue = value.slice(0, cursorPos) + insertCode + value.slice(cursorPos);
+    onChange(newValue);
+    pushToHistory(newValue, [cursorPos + insertCode.length]);
+    
+    setTimeout(() => {
+      if (textareaRef.current) {
+        textareaRef.current.selectionStart = cursorPos + insertCode.length;
+        textareaRef.current.selectionEnd = cursorPos + insertCode.length;
+        textareaRef.current.focus();
+      }
+    }, 0);
+  }, [value, onChange, pushToHistory]);
+
+  const filteredSnippets = useMemo(() => {
+    return CODE_SNIPPETS.filter(s => s.category === snippetCategory);
+  }, [snippetCategory]);
+
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (
@@ -906,7 +1296,7 @@ export const InlineCodeEditor = ({ value, onChange, placeholder, className }: In
 
   return (
     <div className={cn("relative", className)} ref={containerRef}>
-      {/* Toolbar with undo/redo and find */}
+      {/* Toolbar with undo/redo, find, and snippets */}
       <div className="flex items-center gap-1 mb-2 px-1 flex-wrap">
         <Button variant="ghost" size="sm" onClick={undo} disabled={!canUndo} className="h-7 px-2">
           <Undo2 className="h-3.5 w-3.5 mr-1" />
@@ -928,6 +1318,15 @@ export const InlineCodeEditor = ({ value, onChange, placeholder, className }: In
           <Search className="h-3.5 w-3.5 mr-1" />
           <span className="text-xs hidden sm:inline">Find</span>
           <kbd className="ml-1.5 text-[10px] text-muted-foreground hidden sm:inline">⌘F</kbd>
+        </Button>
+        <Button 
+          variant={showSnippetsPanel ? "secondary" : "ghost"} 
+          size="sm" 
+          onClick={() => setShowSnippetsPanel(!showSnippetsPanel)} 
+          className="h-7 px-2"
+        >
+          <Code2 className="h-3.5 w-3.5 mr-1" />
+          <span className="text-xs hidden sm:inline">Snippets</span>
         </Button>
         <div className="flex-1" />
         {cursors.length > 1 && (
@@ -1031,119 +1430,221 @@ export const InlineCodeEditor = ({ value, onChange, placeholder, className }: In
         aria-hidden="true"
       />
       
-      <div className="relative flex border border-input rounded-md overflow-hidden bg-background">
-        {/* Line numbers with fold toggles */}
-        <div 
-          className="line-numbers flex-shrink-0 bg-muted/30 border-r border-border overflow-hidden select-none"
-          style={{ width: "48px" }}
-        >
-          <div className="py-3 font-mono text-xs text-muted-foreground" style={{ lineHeight: "1.5" }}>
-            {visibleLines.map((line) => {
-              const region = foldableRegions.find(r => r.startLine === line.lineNumber - 1);
-              const isFoldable = line.canFold && region;
-              const isCollapsed = isFoldable && collapsedRegions.has(region!.startLine);
-              
-              return (
-                <div 
-                  key={line.lineNumber} 
-                  className="flex items-center justify-end pr-1 h-[1.5em] group"
-                >
-                  {isFoldable ? (
-                    <button
-                      onClick={() => toggleFold(region!.startLine)}
-                      className="w-4 h-4 flex items-center justify-center hover:bg-accent rounded mr-0.5 opacity-50 group-hover:opacity-100 transition-opacity"
-                    >
-                      {isCollapsed ? (
-                        <ChevronRight className="h-3 w-3" />
-                      ) : (
-                        <ChevronDown className="h-3 w-3" />
+      <div className="flex gap-2">
+        {/* Snippets Panel */}
+        {showSnippetsPanel && (
+          <div className="w-64 flex-shrink-0 border border-border rounded-md bg-background overflow-hidden">
+            <div className="p-2 border-b border-border bg-muted/30 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Code2 className="h-4 w-4 text-primary" />
+                <span className="text-sm font-medium">Snippets</span>
+              </div>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setShowSnippetsPanel(false)}
+                className="h-6 w-6 p-0"
+              >
+                <ChevronLeft className="h-3 w-3" />
+              </Button>
+            </div>
+            
+            {/* Category tabs */}
+            <div className="flex flex-wrap gap-1 p-2 border-b border-border bg-muted/20">
+              {SNIPPET_CATEGORIES.map((cat) => {
+                const Icon = cat.icon;
+                return (
+                  <Button
+                    key={cat.id}
+                    variant={snippetCategory === cat.id ? "secondary" : "ghost"}
+                    size="sm"
+                    onClick={() => setSnippetCategory(cat.id)}
+                    className="h-7 px-2 text-xs"
+                  >
+                    <Icon className="h-3 w-3 mr-1" />
+                    {cat.name}
+                  </Button>
+                );
+              })}
+            </div>
+            
+            {/* Snippets list */}
+            <ScrollArea className="h-[300px]">
+              <div className="p-2 space-y-2">
+                {filteredSnippets.map((snippet) => {
+                  const Icon = snippet.icon;
+                  return (
+                    <div
+                      key={snippet.id}
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, snippet)}
+                      onDragEnd={handleDragEnd}
+                      className={cn(
+                        "p-2 rounded-md border border-border bg-card cursor-grab hover:border-primary/50 hover:bg-accent/30 transition-colors group",
+                        draggingSnippet?.id === snippet.id && "opacity-50 border-primary"
                       )}
-                    </button>
-                  ) : (
-                    <span className="w-4 mr-0.5" />
-                  )}
-                  <span className="w-5 text-right">{line.lineNumber}</span>
-                </div>
-              );
-            })}
+                    >
+                      <div className="flex items-start gap-2">
+                        <GripVertical className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5 opacity-50 group-hover:opacity-100" />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <Icon className="h-3.5 w-3.5 text-primary" />
+                            <span className="text-sm font-medium truncate">{snippet.name}</span>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-0.5">{snippet.description}</p>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => insertSnippet(snippet)}
+                          className="h-6 px-2 text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          Insert
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </ScrollArea>
+            
+            <div className="p-2 border-t border-border bg-muted/20 text-xs text-muted-foreground text-center">
+              Drag snippets to editor or click Insert
+            </div>
           </div>
-        </div>
-
-        {/* Code area */}
-        <div className="flex-1 relative">
-          {/* Syntax highlighting overlay */}
-          <div
-            className="highlight-overlay absolute inset-0 py-3 px-3 font-mono text-sm whitespace-pre overflow-hidden pointer-events-none"
-            style={{ lineHeight: "1.5" }}
+        )}
+        
+        {/* Editor area */}
+        <div className={cn(
+          "relative flex flex-1 border rounded-md overflow-hidden bg-background transition-all",
+          isDragOver ? "border-primary ring-2 ring-primary/20" : "border-input"
+        )}>
+          {/* Line numbers with fold toggles */}
+          <div 
+            className="line-numbers flex-shrink-0 bg-muted/30 border-r border-border overflow-hidden select-none"
+            style={{ width: "48px" }}
           >
-            {visibleLines.map((line, index) => {
-              const actualLineIndex = line.lineNumber - 1;
-              const lineStartIndex = lineStartIndices[actualLineIndex] || 0;
+            <div className="py-3 font-mono text-xs text-muted-foreground" style={{ lineHeight: "1.5" }}>
+              {visibleLines.map((line) => {
+                const region = foldableRegions.find(r => r.startLine === line.lineNumber - 1);
+                const isFoldable = line.canFold && region;
+                const isCollapsed = isFoldable && collapsedRegions.has(region!.startLine);
+                
+                return (
+                  <div 
+                    key={line.lineNumber} 
+                    className="flex items-center justify-end pr-1 h-[1.5em] group"
+                  >
+                    {isFoldable ? (
+                      <button
+                        onClick={() => toggleFold(region!.startLine)}
+                        className="w-4 h-4 flex items-center justify-center hover:bg-accent rounded mr-0.5 opacity-50 group-hover:opacity-100 transition-opacity"
+                      >
+                        {isCollapsed ? (
+                          <ChevronRight className="h-3 w-3" />
+                        ) : (
+                          <ChevronDown className="h-3 w-3" />
+                        )}
+                      </button>
+                    ) : (
+                      <span className="w-4 mr-0.5" />
+                    )}
+                    <span className="w-5 text-right">{line.lineNumber}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Code area */}
+          <div className="flex-1 relative">
+            {/* Syntax highlighting overlay */}
+            <div
+              className="highlight-overlay absolute inset-0 py-3 px-3 font-mono text-sm whitespace-pre overflow-hidden pointer-events-none"
+              style={{ lineHeight: "1.5" }}
+            >
+              {visibleLines.map((line, index) => {
+                const actualLineIndex = line.lineNumber - 1;
+                const lineStartIndex = lineStartIndices[actualLineIndex] || 0;
+                
+                return (
+                  <div 
+                    key={`${line.lineNumber}-${index}`} 
+                    className={cn("h-[1.5em]", line.isCollapsed && "text-muted-foreground italic")}
+                    dangerouslySetInnerHTML={{ __html: highlightLine(line.content, lineStartIndex) || "&nbsp;" }}
+                  />
+                );
+              })}
+            </div>
+            
+            {/* Drag overlay */}
+            {isDragOver && (
+              <div className="absolute inset-0 bg-primary/5 flex items-center justify-center z-30 pointer-events-none">
+                <div className="bg-primary text-primary-foreground px-4 py-2 rounded-lg shadow-lg flex items-center gap-2">
+                  <Code2 className="h-4 w-4" />
+                  <span className="text-sm font-medium">Drop to insert snippet</span>
+                </div>
+              </div>
+            )}
+            
+            {/* Multi-cursor indicators */}
+            {cursors.length > 1 && cursors.map((cursor) => {
+              const textBefore = value.substring(0, cursor.pos);
+              const linesB = textBefore.split("\n");
+              const lineIndex = linesB.length - 1;
+              const charIndex = linesB[linesB.length - 1].length;
               
               return (
-                <div 
-                  key={`${line.lineNumber}-${index}`} 
-                  className={cn("h-[1.5em]", line.isCollapsed && "text-muted-foreground italic")}
-                  dangerouslySetInnerHTML={{ __html: highlightLine(line.content, lineStartIndex) || "&nbsp;" }}
+                <div
+                  key={cursor.id}
+                  className="absolute w-0.5 h-[1.3em] bg-primary animate-pulse pointer-events-none z-20"
+                  style={{
+                    top: `calc(0.75rem + ${lineIndex * 1.5}em)`,
+                    left: `calc(0.75rem + ${charIndex * 0.6}em)`,
+                  }}
                 />
               );
             })}
-          </div>
-          
-          {/* Multi-cursor indicators */}
-          {cursors.length > 1 && cursors.map((cursor) => {
-            const textBefore = value.substring(0, cursor.pos);
-            const linesB = textBefore.split("\n");
-            const lineIndex = linesB.length - 1;
-            const charIndex = linesB[linesB.length - 1].length;
             
-            return (
-              <div
-                key={cursor.id}
-                className="absolute w-0.5 h-[1.3em] bg-primary animate-pulse pointer-events-none z-20"
-                style={{
-                  top: `calc(0.75rem + ${lineIndex * 1.5}em)`,
-                  left: `calc(0.75rem + ${charIndex * 0.6}em)`,
-                }}
-              />
-            );
-          })}
-          
-          {/* Textarea */}
-          <textarea
-            ref={textareaRef}
-            value={value}
-            onChange={handleChange}
-            onKeyDown={handleKeyDown}
-            onScroll={handleScroll}
-            onClick={handleClick}
-            placeholder={placeholder}
-            className="w-full min-h-[200px] md:min-h-[300px] py-3 px-3 font-mono text-sm bg-transparent focus:outline-none focus:ring-2 focus:ring-ring resize-y relative z-10"
-            style={{ caretColor: "hsl(var(--foreground))", color: "transparent", lineHeight: "1.5" }}
-            spellCheck={false}
-          />
-        </div>
-
-        {/* Minimap */}
-        <div
-          ref={minimapRef}
-          className="hidden md:block w-16 flex-shrink-0 bg-muted/20 border-l border-border cursor-pointer overflow-hidden relative"
-          onClick={handleMinimapClick}
-        >
-          <div className="p-1 overflow-hidden" style={{ maxHeight: "100%" }}>
-            {minimapLines}
+            {/* Textarea */}
+            <textarea
+              ref={textareaRef}
+              value={value}
+              onChange={handleChange}
+              onKeyDown={handleKeyDown}
+              onScroll={handleScroll}
+              onClick={handleClick}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              placeholder={placeholder}
+              className="w-full min-h-[200px] md:min-h-[300px] py-3 px-3 font-mono text-sm bg-transparent focus:outline-none focus:ring-2 focus:ring-ring resize-y relative z-10"
+              style={{ caretColor: "hsl(var(--foreground))", color: "transparent", lineHeight: "1.5" }}
+              spellCheck={false}
+            />
           </div>
-          
-          {/* Viewport indicator */}
+
+          {/* Minimap */}
           <div
-            className="absolute left-0 right-0 bg-foreground/10 border border-foreground/20 rounded-sm pointer-events-none"
-            style={{
-              top: `${minimapScrollRatio * 80}%`,
-              height: "20%",
-              maxHeight: "40px",
-              minHeight: "10px"
-            }}
-          />
+            ref={minimapRef}
+            className="hidden md:block w-16 flex-shrink-0 bg-muted/20 border-l border-border cursor-pointer overflow-hidden relative"
+            onClick={handleMinimapClick}
+          >
+            <div className="p-1 overflow-hidden" style={{ maxHeight: "100%" }}>
+              {minimapLines}
+            </div>
+            
+            {/* Viewport indicator */}
+            <div
+              className="absolute left-0 right-0 bg-foreground/10 border border-foreground/20 rounded-sm pointer-events-none"
+              style={{
+                top: `${minimapScrollRatio * 80}%`,
+                height: "20%",
+                maxHeight: "40px",
+                minHeight: "10px"
+              }}
+            />
+          </div>
         </div>
       </div>
       
@@ -1152,7 +1653,7 @@ export const InlineCodeEditor = ({ value, onChange, placeholder, className }: In
         <div
           ref={suggestionsRef}
           className="absolute z-50 bg-popover border border-border rounded-lg shadow-xl overflow-hidden"
-          style={{ top: cursorPosition.top + 40, left: cursorPosition.left, minWidth: "280px", maxWidth: "360px" }}
+          style={{ top: cursorPosition.top + 40, left: cursorPosition.left + (showSnippetsPanel ? 264 : 0), minWidth: "280px", maxWidth: "360px" }}
         >
           <ScrollArea className="max-h-[240px]">
             <div className="py-1">
