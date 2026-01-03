@@ -2,19 +2,13 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Play } from "lucide-react";
 import heroImage from "@/assets/hero-algorithm-bg.jpg";
-
 const Hero = () => {
-  return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
+  return <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
       {/* Login Button - moved to Navigation */}
       
       {/* Background Image with Overlay */}
       <div className="absolute inset-0 z-0">
-        <img
-          src={heroImage}
-          alt="Algorithm visualization network"
-          className="w-full h-full object-cover opacity-40"
-        />
+        <img src={heroImage} alt="Algorithm visualization network" className="w-full h-full object-cover opacity-40" />
         <div className="absolute inset-0 bg-gradient-to-b from-background via-background/95 to-background"></div>
       </div>
 
@@ -53,20 +47,13 @@ const Hero = () => {
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-4">
             <Link to="/visualizer">
-              <Button
-                size="lg"
-                className="bg-gradient-primary text-primary-foreground hover:opacity-90 transition-all shadow-glow-primary hover:shadow-glow-primary hover:scale-105 font-semibold px-8 group"
-              >
+              <Button size="lg" className="bg-gradient-primary text-primary-foreground hover:opacity-90 transition-all shadow-glow-primary hover:shadow-glow-primary hover:scale-105 font-semibold px-8 group">
                 Launch Visualizer Now
                 <Play className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
               </Button>
             </Link>
             <Link to="/demo">
-              <Button
-                size="lg"
-                variant="outline"
-                className="border-primary/30 hover:bg-primary/10 hover:border-primary/50 backdrop-blur-sm font-semibold px-8 group"
-              >
+              <Button size="lg" variant="outline" className="border-primary/30 hover:bg-primary/10 hover:border-primary/50 backdrop-blur-sm px-8 group text-center font-bold font-sans">
                 Watch Demo
                 <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
               </Button>
@@ -75,25 +62,26 @@ const Hero = () => {
 
           {/* Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 pt-12 max-w-4xl mx-auto">
-            {[
-              { value: "3+", label: "Languages" },
-              { value: "50+", label: "Algorithms" },
-              { value: "Real-Time", label: "Execution" },
-              { value: "100%", label: "Visual" },
-            ].map((stat, index) => (
-              <div 
-                key={index} 
-                className="space-y-2 group cursor-pointer"
-                style={{ 
-                  animation: 'fade-in-up 0.6s ease-out',
-                  animationDelay: `${0.8 + index * 0.1}s`,
-                  animationFillMode: 'both'
-                }}
-              >
+            {[{
+            value: "3+",
+            label: "Languages"
+          }, {
+            value: "50+",
+            label: "Algorithms"
+          }, {
+            value: "Real-Time",
+            label: "Execution"
+          }, {
+            value: "100%",
+            label: "Visual"
+          }].map((stat, index) => <div key={index} className="space-y-2 group cursor-pointer" style={{
+            animation: 'fade-in-up 0.6s ease-out',
+            animationDelay: `${0.8 + index * 0.1}s`,
+            animationFillMode: 'both'
+          }}>
                 <div className="text-3xl md:text-4xl font-bold text-primary group-hover:scale-110 transition-transform duration-300">{stat.value}</div>
                 <div className="text-sm text-muted-foreground uppercase tracking-wide">{stat.label}</div>
-              </div>
-            ))}
+              </div>)}
           </div>
         </div>
       </div>
@@ -104,8 +92,6 @@ const Hero = () => {
           <div className="w-1 h-2 bg-primary rounded-full animate-pulse"></div>
         </div>
       </div>
-    </section>
-  );
+    </section>;
 };
-
 export default Hero;
