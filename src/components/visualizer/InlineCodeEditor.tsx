@@ -393,6 +393,7 @@ function postorder(node, result = []) {
 ];
 
 const SNIPPET_CATEGORIES = [
+  { id: "all", name: "All", icon: Code2 },
   { id: "sorting", name: "Sorting", icon: Layers },
   { id: "searching", name: "Searching", icon: Binary },
   { id: "trees", name: "Trees", icon: TreeDeciduous },
@@ -437,7 +438,8 @@ export const InlineCodeEditor = ({ value, onChange, placeholder, className }: In
   
   // Snippets panel state
   const [showSnippetsPanel, setShowSnippetsPanel] = useState(false);
-  const [snippetCategory, setSnippetCategory] = useState<string>("sorting");
+  const [snippetCategory, setSnippetCategory] = useState<string>("all");
+  const [snippetSearch, setSnippetSearch] = useState("");
   const [draggingSnippet, setDraggingSnippet] = useState<CodeSnippet | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
   
@@ -1070,6 +1072,13 @@ export const InlineCodeEditor = ({ value, onChange, placeholder, className }: In
       return;
     }
     
+    // Snippets panel toggle (Ctrl+K)
+    if ((e.ctrlKey || e.metaKey) && e.key === "k") {
+      e.preventDefault();
+      setShowSnippetsPanel(prev => !prev);
+      return;
+    }
+    
     // Escape to clear multi-cursors or close find/replace
     if (e.key === "Escape") {
       if (showSuggestions) {
@@ -1249,8 +1258,24 @@ export const InlineCodeEditor = ({ value, onChange, placeholder, className }: In
   }, [value, onChange, pushToHistory]);
 
   const filteredSnippets = useMemo(() => {
-    return CODE_SNIPPETS.filter(s => s.category === snippetCategory);
-  }, [snippetCategory]);
+    let snippets = CODE_SNIPPETS;
+    
+    // Filter by category if not "all"
+    if (snippetCategory !== "all") {
+      snippets = snippets.filter(s => s.category === snippetCategory);
+    }
+    
+    // Filter by search query
+    if (snippetSearch.trim()) {
+      const query = snippetSearch.toLowerCase();
+      snippets = snippets.filter(s => 
+        s.name.toLowerCase().includes(query) || 
+        s.description.toLowerCase().includes(query)
+      );
+    }
+    
+    return snippets;
+  }, [snippetCategory, snippetSearch]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -1327,6 +1352,7 @@ export const InlineCodeEditor = ({ value, onChange, placeholder, className }: In
         >
           <Code2 className="h-3.5 w-3.5 mr-1" />
           <span className="text-xs hidden sm:inline">Snippets</span>
+          <kbd className="ml-1.5 text-[10px] text-muted-foreground hidden sm:inline">⌘K</kbd>
         </Button>
         <div className="flex-1" />
         {cursors.length > 1 && (
@@ -1438,6 +1464,7 @@ export const InlineCodeEditor = ({ value, onChange, placeholder, className }: In
               <div className="flex items-center gap-2">
                 <Code2 className="h-4 w-4 text-primary" />
                 <span className="text-sm font-medium">Snippets</span>
+                <kbd className="text-[10px] text-muted-foreground bg-background px-1 rounded">⌘K</kbd>
               </div>
               <Button 
                 variant="ghost" 
@@ -1447,6 +1474,29 @@ export const InlineCodeEditor = ({ value, onChange, placeholder, className }: In
               >
                 <ChevronLeft className="h-3 w-3" />
               </Button>
+            </div>
+            
+            {/* Search box */}
+            <div className="p-2 border-b border-border">
+              <div className="relative">
+                <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+                <Input
+                  value={snippetSearch}
+                  onChange={(e) => setSnippetSearch(e.target.value)}
+                  placeholder="Search snippets..."
+                  className="h-7 pl-7 text-xs"
+                />
+                {snippetSearch && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSnippetSearch("")}
+                    className="absolute right-1 top-1/2 -translate-y-1/2 h-5 w-5 p-0"
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                )}
+              </div>
             </div>
             
             {/* Category tabs */}
@@ -1459,9 +1509,9 @@ export const InlineCodeEditor = ({ value, onChange, placeholder, className }: In
                     variant={snippetCategory === cat.id ? "secondary" : "ghost"}
                     size="sm"
                     onClick={() => setSnippetCategory(cat.id)}
-                    className="h-7 px-2 text-xs"
+                    className="h-6 px-1.5 text-[10px]"
                   >
-                    <Icon className="h-3 w-3 mr-1" />
+                    <Icon className="h-3 w-3 mr-0.5" />
                     {cat.name}
                   </Button>
                 );
@@ -1469,21 +1519,26 @@ export const InlineCodeEditor = ({ value, onChange, placeholder, className }: In
             </div>
             
             {/* Snippets list */}
-            <ScrollArea className="h-[300px]">
+            <ScrollArea className="h-[280px]">
               <div className="p-2 space-y-2">
-                {filteredSnippets.map((snippet) => {
-                  const Icon = snippet.icon;
-                  return (
-                    <div
-                      key={snippet.id}
-                      draggable
-                      onDragStart={(e) => handleDragStart(e, snippet)}
-                      onDragEnd={handleDragEnd}
-                      className={cn(
-                        "p-2 rounded-md border border-border bg-card cursor-grab hover:border-primary/50 hover:bg-accent/30 transition-colors group",
-                        draggingSnippet?.id === snippet.id && "opacity-50 border-primary"
-                      )}
-                    >
+                {filteredSnippets.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground text-sm">
+                    No snippets found
+                  </div>
+                ) : (
+                  filteredSnippets.map((snippet) => {
+                    const Icon = snippet.icon;
+                    return (
+                      <div
+                        key={snippet.id}
+                        draggable
+                        onDragStart={(e) => handleDragStart(e, snippet)}
+                        onDragEnd={handleDragEnd}
+                        className={cn(
+                          "p-2 rounded-md border border-border bg-card cursor-grab hover:border-primary/50 hover:bg-accent/30 transition-colors group",
+                          draggingSnippet?.id === snippet.id && "opacity-50 border-primary"
+                        )}
+                      >
                       <div className="flex items-start gap-2">
                         <GripVertical className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5 opacity-50 group-hover:opacity-100" />
                         <div className="flex-1 min-w-0">
@@ -1502,9 +1557,10 @@ export const InlineCodeEditor = ({ value, onChange, placeholder, className }: In
                           Insert
                         </Button>
                       </div>
-                    </div>
-                  );
-                })}
+                      </div>
+                    );
+                  })
+                )}
               </div>
             </ScrollArea>
             
