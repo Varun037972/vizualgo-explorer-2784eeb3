@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
-import { Play, Pause, RotateCcw, SkipForward, SkipBack, Sparkles, CheckCircle2, Accessibility } from "lucide-react";
+import { Play, Pause, RotateCcw, SkipForward, SkipBack, Sparkles, CheckCircle2, Accessibility, FileText, ArrowLeftRight, GitCompare, Pointer } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,14 @@ import { QuickStartExamples } from "@/components/QuickStartExamples";
 import { MetricsDashboard } from "@/components/MetricsDashboard";
 import { AccessibilityControls } from "@/components/AccessibilityControls";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+
+interface StepExplanation {
+  action: string;
+  pointerChanges: string;
+  comparison: string;
+}
 
 interface Step {
   array: number[];
@@ -23,6 +31,7 @@ interface Step {
   sorted?: number[];
   pivot?: number;
   description: string;
+  explanation?: StepExplanation;
 }
 
 type Algorithm = "bubble" | "quick" | "merge" | "insertion" | "selection";
@@ -48,6 +57,7 @@ export const SortingVisualizer = () => {
   const [customInput, setCustomInput] = useState("");
   const [startTime, setStartTime] = useState<number>(0);
   const [elapsedTime, setElapsedTime] = useState<number>(0);
+  const [showStepExplanation, setShowStepExplanation] = useState(true);
 
   // Keyboard shortcuts
   useKeyboardShortcuts({
@@ -98,7 +108,15 @@ export const SortingVisualizer = () => {
     let swaps = 0;
     const sorted: number[] = [];
 
-    steps.push({ array: [...array], description: "Starting Bubble Sort" });
+    steps.push({ 
+      array: [...array], 
+      description: "Starting Bubble Sort",
+      explanation: {
+        action: "Initializing Bubble Sort algorithm",
+        pointerChanges: "No pointers set yet",
+        comparison: "No comparisons made"
+      }
+    });
 
     for (let i = 0; i < array.length; i++) {
       for (let j = 0; j < array.length - i - 1; j++) {
@@ -106,25 +124,45 @@ export const SortingVisualizer = () => {
         steps.push({
           array: [...array],
           comparing: [j, j + 1],
-          sorted,
+          sorted: [...sorted],
           description: `Comparing ${array[j]} and ${array[j + 1]}`,
+          explanation: {
+            action: `Comparing adjacent elements at positions ${j} and ${j + 1}`,
+            pointerChanges: `j = ${j}, comparing indices [${j}, ${j + 1}]`,
+            comparison: `${array[j]} ${array[j] > array[j + 1] ? '>' : '≤'} ${array[j + 1]} → ${array[j] > array[j + 1] ? 'Swap needed' : 'No swap needed'}`
+          }
         });
 
         if (array[j] > array[j + 1]) {
           swaps++;
+          const temp = array[j];
           [array[j], array[j + 1]] = [array[j + 1], array[j]];
           steps.push({
             array: [...array],
             swapping: [j, j + 1],
-            sorted,
-            description: `Swapping ${array[j + 1]} and ${array[j]}`,
+            sorted: [...sorted],
+            description: `Swapping ${array[j]} and ${array[j + 1]}`,
+            explanation: {
+              action: `Swapping elements: ${array[j + 1]} ↔ ${array[j]}`,
+              pointerChanges: `Positions ${j} and ${j + 1} exchanged`,
+              comparison: `Swap #${swaps}: Moved larger element (${temp}) right`
+            }
           });
         }
       }
       sorted.push(array.length - i - 1);
     }
 
-    steps.push({ array: [...array], sorted: Array.from({ length: array.length }, (_, i) => i), description: "Sorted!" });
+    steps.push({ 
+      array: [...array], 
+      sorted: Array.from({ length: array.length }, (_, i) => i), 
+      description: "Sorted!",
+      explanation: {
+        action: "Bubble Sort complete! Array is now sorted",
+        pointerChanges: "All elements in final positions",
+        comparison: `Total: ${comparisons} comparisons, ${swaps} swaps`
+      }
+    });
     setStats({ comparisons, swaps, timeComplexity: "O(n²)" });
     return steps;
   };
@@ -136,7 +174,16 @@ export const SortingVisualizer = () => {
     let swaps = 0;
     const sorted: number[] = [0];
 
-    steps.push({ array: [...array], sorted: [0], description: "Starting Insertion Sort" });
+    steps.push({ 
+      array: [...array], 
+      sorted: [0], 
+      description: "Starting Insertion Sort",
+      explanation: {
+        action: "Initializing Insertion Sort - first element is already 'sorted'",
+        pointerChanges: "Sorted portion: [0], unsorted: [1..n-1]",
+        comparison: "No comparisons made yet"
+      }
+    });
 
     for (let i = 1; i < array.length; i++) {
       const key = array[i];
@@ -147,17 +194,28 @@ export const SortingVisualizer = () => {
         comparing: [i],
         sorted: [...sorted],
         description: `Inserting ${key} into sorted portion`,
+        explanation: {
+          action: `Picking element ${key} from position ${i} to insert`,
+          pointerChanges: `i = ${i}, key = ${key}, scanning left from j = ${j}`,
+          comparison: `Will compare ${key} with sorted elements`
+        }
       });
 
       while (j >= 0 && array[j] > key) {
         comparisons++;
         swaps++;
+        const shiftedVal = array[j];
         array[j + 1] = array[j];
         steps.push({
           array: [...array],
           swapping: [j, j + 1],
           sorted: [...sorted],
-          description: `Moving ${array[j]} to the right`,
+          description: `Moving ${shiftedVal} to the right`,
+          explanation: {
+            action: `Shifting ${shiftedVal} from position ${j} to ${j + 1}`,
+            pointerChanges: `j = ${j} → ${j - 1}`,
+            comparison: `${shiftedVal} > ${key} → Shift right`
+          }
         });
         j--;
       }
@@ -165,7 +223,16 @@ export const SortingVisualizer = () => {
       sorted.push(i);
     }
 
-    steps.push({ array: [...array], sorted: Array.from({ length: array.length }, (_, i) => i), description: "Sorted!" });
+    steps.push({ 
+      array: [...array], 
+      sorted: Array.from({ length: array.length }, (_, i) => i), 
+      description: "Sorted!",
+      explanation: {
+        action: "Insertion Sort complete! Array is now sorted",
+        pointerChanges: "All elements in final positions",
+        comparison: `Total: ${comparisons} comparisons, ${swaps} shifts`
+      }
+    });
     setStats({ comparisons, swaps, timeComplexity: "O(n²)" });
     return steps;
   };
@@ -177,39 +244,68 @@ export const SortingVisualizer = () => {
     let swaps = 0;
     const sorted: number[] = [];
 
-    steps.push({ array: [...array], description: "Starting Selection Sort" });
+    steps.push({ 
+      array: [...array], 
+      description: "Starting Selection Sort",
+      explanation: {
+        action: "Initializing Selection Sort - will find minimum in each pass",
+        pointerChanges: "No pointers set yet",
+        comparison: "No comparisons made yet"
+      }
+    });
 
     for (let i = 0; i < array.length - 1; i++) {
       let minIdx = i;
 
       for (let j = i + 1; j < array.length; j++) {
         comparisons++;
+        const isNewMin = array[j] < array[minIdx];
         steps.push({
           array: [...array],
           comparing: [minIdx, j],
-          sorted,
+          sorted: [...sorted],
           description: `Finding minimum: comparing ${array[minIdx]} and ${array[j]}`,
+          explanation: {
+            action: `Scanning for minimum in unsorted portion [${i}..${array.length - 1}]`,
+            pointerChanges: `i = ${i}, j = ${j}, minIdx = ${minIdx}${isNewMin ? ` → ${j}` : ''}`,
+            comparison: `${array[j]} ${isNewMin ? '<' : '≥'} ${array[minIdx]} → ${isNewMin ? 'New minimum found!' : 'Keep current minimum'}`
+          }
         });
 
-        if (array[j] < array[minIdx]) {
+        if (isNewMin) {
           minIdx = j;
         }
       }
 
       if (minIdx !== i) {
         swaps++;
+        const swappedVals = [array[i], array[minIdx]];
         [array[i], array[minIdx]] = [array[minIdx], array[i]];
         steps.push({
           array: [...array],
           swapping: [i, minIdx],
-          sorted,
-          description: `Swapping ${array[minIdx]} with ${array[i]}`,
+          sorted: [...sorted],
+          description: `Swapping ${swappedVals[0]} with ${swappedVals[1]}`,
+          explanation: {
+            action: `Placing minimum ${swappedVals[1]} at position ${i}`,
+            pointerChanges: `Swapped positions ${i} ↔ ${minIdx}`,
+            comparison: `Swap #${swaps}: ${swappedVals[1]} is the minimum for this pass`
+          }
         });
       }
       sorted.push(i);
     }
 
-    steps.push({ array: [...array], sorted: Array.from({ length: array.length }, (_, i) => i), description: "Sorted!" });
+    steps.push({ 
+      array: [...array], 
+      sorted: Array.from({ length: array.length }, (_, i) => i), 
+      description: "Sorted!",
+      explanation: {
+        action: "Selection Sort complete! Array is now sorted",
+        pointerChanges: "All elements in final positions",
+        comparison: `Total: ${comparisons} comparisons, ${swaps} swaps`
+      }
+    });
     setStats({ comparisons, swaps, timeComplexity: "O(n²)" });
     return steps;
   };
@@ -220,7 +316,15 @@ export const SortingVisualizer = () => {
     let comparisons = 0;
     let swaps = 0;
 
-    steps.push({ array: [...array], description: "Starting Quick Sort" });
+    steps.push({ 
+      array: [...array], 
+      description: "Starting Quick Sort",
+      explanation: {
+        action: "Initializing Quick Sort - divide and conquer approach",
+        pointerChanges: "No pointers set yet",
+        comparison: "No comparisons made yet"
+      }
+    });
 
     const partition = (low: number, high: number): number => {
       const pivot = array[high];
@@ -230,36 +334,59 @@ export const SortingVisualizer = () => {
         array: [...array],
         pivot: high,
         description: `Pivot selected: ${pivot}`,
+        explanation: {
+          action: `Selected pivot element ${pivot} at position ${high}`,
+          pointerChanges: `low = ${low}, high = ${high}, i = ${i}`,
+          comparison: `Will partition around pivot ${pivot}`
+        }
       });
 
       for (let j = low; j < high; j++) {
         comparisons++;
+        const isLessThanPivot = array[j] < pivot;
         steps.push({
           array: [...array],
           comparing: [j, high],
           pivot: high,
           description: `Comparing ${array[j]} with pivot ${pivot}`,
+          explanation: {
+            action: `Checking if ${array[j]} should go left of pivot`,
+            pointerChanges: `j = ${j}, i = ${i}`,
+            comparison: `${array[j]} ${isLessThanPivot ? '<' : '≥'} ${pivot} → ${isLessThanPivot ? 'Move to left partition' : 'Stay in right partition'}`
+          }
         });
 
-        if (array[j] < pivot) {
+        if (isLessThanPivot) {
           i++;
           swaps++;
+          const swappedVals = [array[i], array[j]];
           [array[i], array[j]] = [array[j], array[i]];
           steps.push({
             array: [...array],
             swapping: [i, j],
             pivot: high,
-            description: `Swapping ${array[j]} and ${array[i]}`,
+            description: `Swapping ${swappedVals[0]} and ${swappedVals[1]}`,
+            explanation: {
+              action: `Moving ${swappedVals[1]} to left partition`,
+              pointerChanges: `i incremented to ${i}, swapped positions ${i} ↔ ${j}`,
+              comparison: `Swap #${swaps}: Building left partition`
+            }
           });
         }
       }
 
       swaps++;
+      const pivotVal = array[high];
       [array[i + 1], array[high]] = [array[high], array[i + 1]];
       steps.push({
         array: [...array],
         swapping: [i + 1, high],
-        description: `Placing pivot ${pivot} in correct position`,
+        description: `Placing pivot ${pivotVal} in correct position`,
+        explanation: {
+          action: `Pivot ${pivotVal} placed at final position ${i + 1}`,
+          pointerChanges: `Pivot moved from ${high} to ${i + 1}`,
+          comparison: `Partition complete: left [${low}..${i}], pivot at ${i + 1}, right [${i + 2}..${high}]`
+        }
       });
 
       return i + 1;
@@ -274,7 +401,16 @@ export const SortingVisualizer = () => {
     };
 
     quickSortHelper(0, array.length - 1);
-    steps.push({ array: [...array], sorted: Array.from({ length: array.length }, (_, i) => i), description: "Sorted!" });
+    steps.push({ 
+      array: [...array], 
+      sorted: Array.from({ length: array.length }, (_, i) => i), 
+      description: "Sorted!",
+      explanation: {
+        action: "Quick Sort complete! Array is now sorted",
+        pointerChanges: "All elements in final positions",
+        comparison: `Total: ${comparisons} comparisons, ${swaps} swaps`
+      }
+    });
     setStats({ comparisons, swaps, timeComplexity: "O(n log n)" });
     return steps;
   };
@@ -285,7 +421,15 @@ export const SortingVisualizer = () => {
     let comparisons = 0;
     let swaps = 0;
 
-    steps.push({ array: [...array], description: "Starting Merge Sort" });
+    steps.push({ 
+      array: [...array], 
+      description: "Starting Merge Sort",
+      explanation: {
+        action: "Initializing Merge Sort - divide array then merge sorted halves",
+        pointerChanges: "No pointers set yet",
+        comparison: "No comparisons made yet"
+      }
+    });
 
     const merge = (left: number, mid: number, right: number) => {
       const leftArr = array.slice(left, mid + 1);
@@ -296,11 +440,18 @@ export const SortingVisualizer = () => {
         array: [...array],
         comparing: Array.from({ length: right - left + 1 }, (_, idx) => left + idx),
         description: `Merging subarrays`,
+        explanation: {
+          action: `Merging subarrays [${left}..${mid}] and [${mid + 1}..${right}]`,
+          pointerChanges: `left pointer i = ${i}, right pointer j = ${j}, write position k = ${k}`,
+          comparison: `Comparing elements from left [${leftArr.join(', ')}] and right [${rightArr.join(', ')}]`
+        }
       });
 
       while (i < leftArr.length && j < rightArr.length) {
         comparisons++;
-        if (leftArr[i] <= rightArr[j]) {
+        const pickedLeft = leftArr[i] <= rightArr[j];
+        const pickedVal = pickedLeft ? leftArr[i] : rightArr[j];
+        if (pickedLeft) {
           array[k] = leftArr[i];
           i++;
         } else {
@@ -311,21 +462,44 @@ export const SortingVisualizer = () => {
         steps.push({
           array: [...array],
           swapping: [k],
-          description: `Placing ${array[k]} in merged array`,
+          description: `Placing ${pickedVal} in merged array`,
+          explanation: {
+            action: `Picked ${pickedVal} from ${pickedLeft ? 'left' : 'right'} subarray`,
+            pointerChanges: `${pickedLeft ? `i: ${i - 1} → ${i}` : `j: ${j - 1} → ${j}`}, k: ${k} → ${k + 1}`,
+            comparison: `${leftArr[i - (pickedLeft ? 1 : 0)] || '—'} vs ${rightArr[j - (pickedLeft ? 0 : 1)] || '—'} → Picked smaller`
+          }
         });
         k++;
       }
 
       while (i < leftArr.length) {
         array[k] = leftArr[i];
-        steps.push({ array: [...array], swapping: [k], description: `Copying remaining elements` });
+        steps.push({ 
+          array: [...array], 
+          swapping: [k], 
+          description: `Copying remaining elements`,
+          explanation: {
+            action: `Copying remaining element ${leftArr[i]} from left subarray`,
+            pointerChanges: `i: ${i} → ${i + 1}, k: ${k} → ${k + 1}`,
+            comparison: `Right subarray exhausted, copying left remainder`
+          }
+        });
         i++;
         k++;
       }
 
       while (j < rightArr.length) {
         array[k] = rightArr[j];
-        steps.push({ array: [...array], swapping: [k], description: `Copying remaining elements` });
+        steps.push({ 
+          array: [...array], 
+          swapping: [k], 
+          description: `Copying remaining elements`,
+          explanation: {
+            action: `Copying remaining element ${rightArr[j]} from right subarray`,
+            pointerChanges: `j: ${j} → ${j + 1}, k: ${k} → ${k + 1}`,
+            comparison: `Left subarray exhausted, copying right remainder`
+          }
+        });
         j++;
         k++;
       }
@@ -341,7 +515,16 @@ export const SortingVisualizer = () => {
     };
 
     mergeSortHelper(0, array.length - 1);
-    steps.push({ array: [...array], sorted: Array.from({ length: array.length }, (_, i) => i), description: "Sorted!" });
+    steps.push({ 
+      array: [...array], 
+      sorted: Array.from({ length: array.length }, (_, i) => i), 
+      description: "Sorted!",
+      explanation: {
+        action: "Merge Sort complete! Array is now sorted",
+        pointerChanges: "All elements in final positions",
+        comparison: `Total: ${comparisons} comparisons, ${swaps} merges`
+      }
+    });
     setStats({ comparisons, swaps, timeComplexity: "O(n log n)" });
     return steps;
   };
@@ -491,7 +674,7 @@ export const SortingVisualizer = () => {
             </p>
           </div>
 
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex gap-2 flex-wrap items-center">
             <Button
               onClick={startVisualization} 
               disabled={isPlaying || steps.length > 0} 
@@ -532,6 +715,18 @@ export const SortingVisualizer = () => {
             >
               <RotateCcw className="h-4 w-4" />
             </Button>
+
+            <div className="flex items-center gap-2 ml-auto border-l border-border pl-4">
+              <Switch
+                id="step-explanation"
+                checked={showStepExplanation}
+                onCheckedChange={setShowStepExplanation}
+              />
+              <Label htmlFor="step-explanation" className="text-sm font-medium flex items-center gap-1.5 cursor-pointer">
+                <FileText className="h-4 w-4" />
+                Step Explanation
+              </Label>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -617,6 +812,45 @@ export const SortingVisualizer = () => {
                 </p>
               )}
             </div>
+
+            {/* Step Explanation Panel */}
+            {showStepExplanation && currentStepData.explanation && (
+              <div className="bg-muted/50 border border-border rounded-lg p-4 space-y-3 animate-fade-in">
+                <div className="flex items-center gap-2 text-sm font-semibold text-primary">
+                  <FileText className="h-4 w-4" />
+                  Step Explanation
+                </div>
+                <div className="grid gap-3 text-sm">
+                  <div className="flex items-start gap-3 p-2 bg-background/50 rounded-md">
+                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-500/20 text-blue-500 shrink-0">
+                      <Sparkles className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-foreground">What's happening</p>
+                      <p className="text-muted-foreground">{currentStepData.explanation.action}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3 p-2 bg-background/50 rounded-md">
+                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-amber-500/20 text-amber-500 shrink-0">
+                      <Pointer className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-foreground">Pointer/Index Changes</p>
+                      <p className="text-muted-foreground font-mono text-xs">{currentStepData.explanation.pointerChanges}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3 p-2 bg-background/50 rounded-md">
+                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-green-500/20 text-green-500 shrink-0">
+                      <GitCompare className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-foreground">Key Comparison/Swap</p>
+                      <p className="text-muted-foreground font-mono text-xs">{currentStepData.explanation.comparison}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Legend */}
             <div className="flex flex-wrap gap-4 justify-center text-sm">
