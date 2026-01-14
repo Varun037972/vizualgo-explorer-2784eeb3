@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
-import { Play, Pause, RotateCcw, SkipForward, SkipBack, Sparkles, CheckCircle2, Accessibility, FileText, ArrowLeftRight, GitCompare, Pointer } from "lucide-react";
+import { Play, Pause, RotateCcw, SkipForward, SkipBack, Sparkles, CheckCircle2, Accessibility, FileText, ArrowLeftRight, GitCompare, Pointer, Volume2, VolumeX } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
@@ -58,6 +58,93 @@ export const SortingVisualizer = () => {
   const [startTime, setStartTime] = useState<number>(0);
   const [elapsedTime, setElapsedTime] = useState<number>(0);
   const [showStepExplanation, setShowStepExplanation] = useState(true);
+  const [voiceNarrationEnabled, setVoiceNarrationEnabled] = useState(false);
+  const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const lastSpokenStepRef = useRef<number>(-1);
+  const speechSynthRef = useRef<SpeechSynthesis | null>(null);
+
+  // Initialize speech synthesis
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      speechSynthRef.current = window.speechSynthesis;
+      
+      const loadVoices = () => {
+        const voices = speechSynthRef.current?.getVoices() || [];
+        setAvailableVoices(voices);
+      };
+      
+      loadVoices();
+      speechSynthRef.current.onvoiceschanged = loadVoices;
+      
+      return () => {
+        speechSynthRef.current?.cancel();
+      };
+    }
+  }, []);
+
+  // Voice narration function
+  const speak = useCallback((text: string) => {
+    if (!speechSynthRef.current || !voiceNarrationEnabled) return;
+    
+    // Cancel any ongoing speech
+    speechSynthRef.current.cancel();
+    
+    const utterance = new SpeechSynthesisUtterance(text);
+    
+    // Try to find a good English voice
+    const englishVoice = availableVoices.find(
+      voice => voice.lang.startsWith('en') && voice.name.includes('Google')
+    ) || availableVoices.find(
+      voice => voice.lang.startsWith('en')
+    ) || availableVoices[0];
+    
+    if (englishVoice) {
+      utterance.voice = englishVoice;
+    }
+    
+    utterance.rate = Math.min(1.5, Math.max(0.8, 1000 / speed)); // Adjust rate based on animation speed
+    utterance.pitch = 1;
+    utterance.volume = 1;
+    
+    speechSynthRef.current.speak(utterance);
+  }, [voiceNarrationEnabled, availableVoices, speed]);
+
+  // Speak step explanation when step changes
+  useEffect(() => {
+    if (voiceNarrationEnabled && steps.length > 0 && currentStep !== lastSpokenStepRef.current) {
+      const stepData = steps[currentStep];
+      if (stepData?.explanation) {
+        const narrationText = stepData.explanation.action;
+        speak(narrationText);
+        lastSpokenStepRef.current = currentStep;
+      } else if (stepData?.description) {
+        speak(stepData.description);
+        lastSpokenStepRef.current = currentStep;
+      }
+    }
+  }, [currentStep, steps, voiceNarrationEnabled, speak]);
+
+  // Stop speech when narration is disabled
+  useEffect(() => {
+    if (!voiceNarrationEnabled && speechSynthRef.current) {
+      speechSynthRef.current.cancel();
+    }
+  }, [voiceNarrationEnabled]);
+
+  // Handle voice narration toggle
+  const handleVoiceNarrationToggle = (enabled: boolean) => {
+    if (enabled && !window.speechSynthesis) {
+      toast.error("Voice narration is not supported in your browser");
+      return;
+    }
+    setVoiceNarrationEnabled(enabled);
+    if (enabled) {
+      toast.success("Voice narration enabled");
+    } else {
+      speechSynthRef.current?.cancel();
+      toast.info("Voice narration disabled");
+    }
+  };
 
   // Keyboard shortcuts
   useKeyboardShortcuts({
@@ -716,16 +803,29 @@ export const SortingVisualizer = () => {
               <RotateCcw className="h-4 w-4" />
             </Button>
 
-            <div className="flex items-center gap-2 ml-auto border-l border-border pl-4">
-              <Switch
-                id="step-explanation"
-                checked={showStepExplanation}
-                onCheckedChange={setShowStepExplanation}
-              />
-              <Label htmlFor="step-explanation" className="text-sm font-medium flex items-center gap-1.5 cursor-pointer">
-                <FileText className="h-4 w-4" />
-                Step Explanation
-              </Label>
+            <div className="flex items-center gap-4 ml-auto border-l border-border pl-4">
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="step-explanation"
+                  checked={showStepExplanation}
+                  onCheckedChange={setShowStepExplanation}
+                />
+                <Label htmlFor="step-explanation" className="text-sm font-medium flex items-center gap-1.5 cursor-pointer">
+                  <FileText className="h-4 w-4" />
+                  Step Explanation
+                </Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="voice-narration"
+                  checked={voiceNarrationEnabled}
+                  onCheckedChange={handleVoiceNarrationToggle}
+                />
+                <Label htmlFor="voice-narration" className="text-sm font-medium flex items-center gap-1.5 cursor-pointer">
+                  {voiceNarrationEnabled ? <Volume2 className="h-4 w-4 text-primary" /> : <VolumeX className="h-4 w-4" />}
+                  Voice
+                </Label>
+              </div>
             </div>
           </div>
         </CardContent>
