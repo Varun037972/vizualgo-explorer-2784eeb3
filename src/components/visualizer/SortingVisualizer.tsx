@@ -60,6 +60,7 @@ export const SortingVisualizer = () => {
   const [showStepExplanation, setShowStepExplanation] = useState(true);
   const [voiceNarrationEnabled, setVoiceNarrationEnabled] = useState(false);
   const [voiceSpeed, setVoiceSpeed] = useState(1);
+  const [voicePitch, setVoicePitch] = useState(1);
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
   const lastSpokenStepRef = useRef<number>(-1);
   const speechSynthRef = useRef<SpeechSynthesis | null>(null);
@@ -104,11 +105,11 @@ export const SortingVisualizer = () => {
     }
     
     utterance.rate = voiceSpeed;
-    utterance.pitch = 1;
+    utterance.pitch = voicePitch;
     utterance.volume = 1;
     
     speechSynthRef.current.speak(utterance);
-  }, [voiceNarrationEnabled, availableVoices, voiceSpeed]);
+  }, [voiceNarrationEnabled, availableVoices, voiceSpeed, voicePitch]);
 
   // Speak step explanation when step changes
   useEffect(() => {
@@ -828,20 +829,36 @@ export const SortingVisualizer = () => {
                 </Label>
               </div>
               {voiceNarrationEnabled && (
-                <div className="flex items-center gap-2 min-w-[140px]">
-                  <Label htmlFor="voice-speed" className="text-xs text-muted-foreground whitespace-nowrap">
-                    Speed: {voiceSpeed.toFixed(1)}x
-                  </Label>
-                  <Slider
-                    id="voice-speed"
-                    value={[voiceSpeed]}
-                    onValueChange={([value]) => setVoiceSpeed(value)}
-                    min={0.5}
-                    max={2}
-                    step={0.1}
-                    className="w-20"
-                  />
-                </div>
+                <>
+                  <div className="flex items-center gap-2 min-w-[130px]">
+                    <Label htmlFor="voice-speed" className="text-xs text-muted-foreground whitespace-nowrap">
+                      Speed: {voiceSpeed.toFixed(1)}x
+                    </Label>
+                    <Slider
+                      id="voice-speed"
+                      value={[voiceSpeed]}
+                      onValueChange={([value]) => setVoiceSpeed(value)}
+                      min={0.5}
+                      max={2}
+                      step={0.1}
+                      className="w-16"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2 min-w-[130px]">
+                    <Label htmlFor="voice-pitch" className="text-xs text-muted-foreground whitespace-nowrap">
+                      Pitch: {voicePitch.toFixed(1)}
+                    </Label>
+                    <Slider
+                      id="voice-pitch"
+                      value={[voicePitch]}
+                      onValueChange={([value]) => setVoicePitch(value)}
+                      min={0.5}
+                      max={2}
+                      step={0.1}
+                      className="w-16"
+                    />
+                  </div>
+                </>
               )}
             </div>
           </div>
