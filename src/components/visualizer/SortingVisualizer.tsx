@@ -61,6 +61,7 @@ export const SortingVisualizer = () => {
   const [voiceNarrationEnabled, setVoiceNarrationEnabled] = useState(false);
   const [voiceSpeed, setVoiceSpeed] = useState(1);
   const [voicePitch, setVoicePitch] = useState(1);
+  const [voiceVolume, setVoiceVolume] = useState(1);
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [selectedVoiceIndex, setSelectedVoiceIndex] = useState<number>(-1);
   const lastSpokenStepRef = useRef<number>(-1);
@@ -112,10 +113,10 @@ export const SortingVisualizer = () => {
     
     utterance.rate = voiceSpeed;
     utterance.pitch = voicePitch;
-    utterance.volume = 1;
+    utterance.volume = voiceVolume;
     
     speechSynthRef.current.speak(utterance);
-  }, [voiceNarrationEnabled, availableVoices, voiceSpeed, voicePitch, selectedVoiceIndex]);
+  }, [voiceNarrationEnabled, availableVoices, voiceSpeed, voicePitch, voiceVolume, selectedVoiceIndex]);
 
   // Speak step explanation when step changes
   useEffect(() => {
@@ -881,6 +882,20 @@ export const SortingVisualizer = () => {
                       onValueChange={([value]) => setVoicePitch(value)}
                       min={0.5}
                       max={2}
+                      step={0.1}
+                      className="w-14"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2 min-w-[110px]">
+                    <Label htmlFor="voice-volume" className="text-xs text-muted-foreground whitespace-nowrap">
+                      Vol: {Math.round(voiceVolume * 100)}%
+                    </Label>
+                    <Slider
+                      id="voice-volume"
+                      value={[voiceVolume]}
+                      onValueChange={([value]) => setVoiceVolume(value)}
+                      min={0}
+                      max={1}
                       step={0.1}
                       className="w-14"
                     />
