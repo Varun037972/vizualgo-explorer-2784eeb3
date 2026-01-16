@@ -59,6 +59,7 @@ export const SortingVisualizer = () => {
   const [elapsedTime, setElapsedTime] = useState<number>(0);
   const [showStepExplanation, setShowStepExplanation] = useState(true);
   const [voiceNarrationEnabled, setVoiceNarrationEnabled] = useState(false);
+  const [voiceSpeed, setVoiceSpeed] = useState(1);
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
   const lastSpokenStepRef = useRef<number>(-1);
   const speechSynthRef = useRef<SpeechSynthesis | null>(null);
@@ -102,12 +103,12 @@ export const SortingVisualizer = () => {
       utterance.voice = englishVoice;
     }
     
-    utterance.rate = Math.min(1.5, Math.max(0.8, 1000 / speed)); // Adjust rate based on animation speed
+    utterance.rate = voiceSpeed;
     utterance.pitch = 1;
     utterance.volume = 1;
     
     speechSynthRef.current.speak(utterance);
-  }, [voiceNarrationEnabled, availableVoices, speed]);
+  }, [voiceNarrationEnabled, availableVoices, voiceSpeed]);
 
   // Speak step explanation when step changes
   useEffect(() => {
@@ -826,6 +827,22 @@ export const SortingVisualizer = () => {
                   Voice
                 </Label>
               </div>
+              {voiceNarrationEnabled && (
+                <div className="flex items-center gap-2 min-w-[140px]">
+                  <Label htmlFor="voice-speed" className="text-xs text-muted-foreground whitespace-nowrap">
+                    Speed: {voiceSpeed.toFixed(1)}x
+                  </Label>
+                  <Slider
+                    id="voice-speed"
+                    value={[voiceSpeed]}
+                    onValueChange={([value]) => setVoiceSpeed(value)}
+                    min={0.5}
+                    max={2}
+                    step={0.1}
+                    className="w-20"
+                  />
+                </div>
+              )}
             </div>
           </div>
         </CardContent>
