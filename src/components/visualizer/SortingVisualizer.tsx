@@ -62,6 +62,7 @@ export const SortingVisualizer = () => {
   const [voiceSpeed, setVoiceSpeed] = useState(1);
   const [voicePitch, setVoicePitch] = useState(1);
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [selectedVoiceIndex, setSelectedVoiceIndex] = useState<number>(-1);
   const lastSpokenStepRef = useRef<number>(-1);
   const speechSynthRef = useRef<SpeechSynthesis | null>(null);
 
@@ -93,15 +94,20 @@ export const SortingVisualizer = () => {
     
     const utterance = new SpeechSynthesisUtterance(text);
     
-    // Try to find a good English voice
-    const englishVoice = availableVoices.find(
-      voice => voice.lang.startsWith('en') && voice.name.includes('Google')
-    ) || availableVoices.find(
-      voice => voice.lang.startsWith('en')
-    ) || availableVoices[0];
+    // Use selected voice or find a good default English voice
+    let voice: SpeechSynthesisVoice | undefined;
+    if (selectedVoiceIndex >= 0 && availableVoices[selectedVoiceIndex]) {
+      voice = availableVoices[selectedVoiceIndex];
+    } else {
+      voice = availableVoices.find(
+        v => v.lang.startsWith('en') && v.name.includes('Google')
+      ) || availableVoices.find(
+        v => v.lang.startsWith('en')
+      ) || availableVoices[0];
+    }
     
-    if (englishVoice) {
-      utterance.voice = englishVoice;
+    if (voice) {
+      utterance.voice = voice;
     }
     
     utterance.rate = voiceSpeed;
@@ -109,7 +115,7 @@ export const SortingVisualizer = () => {
     utterance.volume = 1;
     
     speechSynthRef.current.speak(utterance);
-  }, [voiceNarrationEnabled, availableVoices, voiceSpeed, voicePitch]);
+  }, [voiceNarrationEnabled, availableVoices, voiceSpeed, voicePitch, selectedVoiceIndex]);
 
   // Speak step explanation when step changes
   useEffect(() => {
@@ -830,7 +836,28 @@ export const SortingVisualizer = () => {
               </div>
               {voiceNarrationEnabled && (
                 <>
-                  <div className="flex items-center gap-2 min-w-[130px]">
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="voice-select" className="text-xs text-muted-foreground whitespace-nowrap">
+                      Voice:
+                    </Label>
+                    <Select
+                      value={selectedVoiceIndex.toString()}
+                      onValueChange={(value) => setSelectedVoiceIndex(parseInt(value))}
+                    >
+                      <SelectTrigger className="w-[140px] h-8 text-xs">
+                        <SelectValue placeholder="Auto" />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-[200px]">
+                        <SelectItem value="-1">Auto (English)</SelectItem>
+                        {availableVoices.map((voice, index) => (
+                          <SelectItem key={index} value={index.toString()}>
+                            {voice.name.length > 20 ? voice.name.slice(0, 20) + '...' : voice.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex items-center gap-2 min-w-[120px]">
                     <Label htmlFor="voice-speed" className="text-xs text-muted-foreground whitespace-nowrap">
                       Speed: {voiceSpeed.toFixed(1)}x
                     </Label>
@@ -841,10 +868,10 @@ export const SortingVisualizer = () => {
                       min={0.5}
                       max={2}
                       step={0.1}
-                      className="w-16"
+                      className="w-14"
                     />
                   </div>
-                  <div className="flex items-center gap-2 min-w-[130px]">
+                  <div className="flex items-center gap-2 min-w-[110px]">
                     <Label htmlFor="voice-pitch" className="text-xs text-muted-foreground whitespace-nowrap">
                       Pitch: {voicePitch.toFixed(1)}
                     </Label>
@@ -855,7 +882,7 @@ export const SortingVisualizer = () => {
                       min={0.5}
                       max={2}
                       step={0.1}
-                      className="w-16"
+                      className="w-14"
                     />
                   </div>
                 </>
