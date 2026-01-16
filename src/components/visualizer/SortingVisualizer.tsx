@@ -58,12 +58,42 @@ export const SortingVisualizer = () => {
   const [startTime, setStartTime] = useState<number>(0);
   const [elapsedTime, setElapsedTime] = useState<number>(0);
   const [showStepExplanation, setShowStepExplanation] = useState(true);
-  const [voiceNarrationEnabled, setVoiceNarrationEnabled] = useState(false);
-  const [voiceSpeed, setVoiceSpeed] = useState(1);
-  const [voicePitch, setVoicePitch] = useState(1);
-  const [voiceVolume, setVoiceVolume] = useState(1);
+  const [voiceNarrationEnabled, setVoiceNarrationEnabled] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('voiceNarrationEnabled');
+      return saved ? JSON.parse(saved) : false;
+    }
+    return false;
+  });
+  const [voiceSpeed, setVoiceSpeed] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('voiceSpeed');
+      return saved ? parseFloat(saved) : 1;
+    }
+    return 1;
+  });
+  const [voicePitch, setVoicePitch] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('voicePitch');
+      return saved ? parseFloat(saved) : 1;
+    }
+    return 1;
+  });
+  const [voiceVolume, setVoiceVolume] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('voiceVolume');
+      return saved ? parseFloat(saved) : 1;
+    }
+    return 1;
+  });
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
-  const [selectedVoiceIndex, setSelectedVoiceIndex] = useState<number>(-1);
+  const [selectedVoiceIndex, setSelectedVoiceIndex] = useState<number>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('selectedVoiceIndex');
+      return saved ? parseInt(saved) : -1;
+    }
+    return -1;
+  });
   const lastSpokenStepRef = useRef<number>(-1);
   const speechSynthRef = useRef<SpeechSynthesis | null>(null);
 
@@ -85,6 +115,27 @@ export const SortingVisualizer = () => {
       };
     }
   }, []);
+
+  // Persist voice settings to localStorage
+  useEffect(() => {
+    localStorage.setItem('voiceNarrationEnabled', JSON.stringify(voiceNarrationEnabled));
+  }, [voiceNarrationEnabled]);
+
+  useEffect(() => {
+    localStorage.setItem('voiceSpeed', voiceSpeed.toString());
+  }, [voiceSpeed]);
+
+  useEffect(() => {
+    localStorage.setItem('voicePitch', voicePitch.toString());
+  }, [voicePitch]);
+
+  useEffect(() => {
+    localStorage.setItem('voiceVolume', voiceVolume.toString());
+  }, [voiceVolume]);
+
+  useEffect(() => {
+    localStorage.setItem('selectedVoiceIndex', selectedVoiceIndex.toString());
+  }, [selectedVoiceIndex]);
 
   // Voice narration function
   const speak = useCallback((text: string) => {
