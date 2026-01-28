@@ -16,6 +16,7 @@ import { Navigation } from "@/components/Navigation";
 import { OnboardingTutorial } from "@/components/OnboardingTutorial";
 import { useExportVisualization } from "@/hooks/useExportVisualization";
 import { toast } from "sonner";
+import { KeyboardShortcutsHelp } from "@/components/KeyboardShortcutsHelp";
 
 const Visualizer = () => {
   const [isRacing, setIsRacing] = useState(false);
@@ -73,6 +74,7 @@ const Visualizer = () => {
                     <span className="hidden sm:inline">Tutorial</span>
                     <span className="sm:hidden">Help</span>
                   </Button>
+                  <KeyboardShortcutsHelp triggerClassName="gap-1 md:gap-2 text-xs md:text-sm" />
                   <Button
                     variant="outline"
                     size="sm"

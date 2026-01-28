@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
-import { Play, Pause, RotateCcw, SkipForward, SkipBack, Sparkles, CheckCircle2, Accessibility, FileText, ArrowLeftRight, GitCompare, Pointer, Volume2, VolumeX } from "lucide-react";
+import { Play, Pause, RotateCcw, SkipForward, SkipBack, Sparkles, CheckCircle2, Accessibility, FileText, ArrowLeftRight, GitCompare, Pointer, Volume2, VolumeX, Volume1, RotateCw } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,7 @@ import { AccessibilityControls } from "@/components/AccessibilityControls";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { KeyboardShortcutsHelp } from "@/components/KeyboardShortcutsHelp";
 
 interface StepExplanation {
   action: string;
@@ -205,6 +206,49 @@ export const SortingVisualizer = () => {
       toast.info("Voice narration disabled");
     }
   };
+
+  // Test voice function
+  const testVoice = useCallback(() => {
+    if (!speechSynthRef.current) {
+      toast.error("Speech synthesis not available");
+      return;
+    }
+    
+    speechSynthRef.current.cancel();
+    const testText = "Testing voice settings. Comparing element 5 with element 8, swap needed!";
+    const utterance = new SpeechSynthesisUtterance(testText);
+    
+    let voice: SpeechSynthesisVoice | undefined;
+    if (selectedVoiceIndex >= 0 && availableVoices[selectedVoiceIndex]) {
+      voice = availableVoices[selectedVoiceIndex];
+    } else {
+      voice = availableVoices.find(
+        v => v.lang.startsWith('en') && v.name.includes('Google')
+      ) || availableVoices.find(
+        v => v.lang.startsWith('en')
+      ) || availableVoices[0];
+    }
+    
+    if (voice) {
+      utterance.voice = voice;
+    }
+    
+    utterance.rate = voiceSpeed;
+    utterance.pitch = voicePitch;
+    utterance.volume = voiceVolume;
+    
+    speechSynthRef.current.speak(utterance);
+    toast.info("Playing test voice...");
+  }, [availableVoices, selectedVoiceIndex, voiceSpeed, voicePitch, voiceVolume]);
+
+  // Reset voice settings to defaults
+  const resetVoiceSettings = useCallback(() => {
+    setVoiceSpeed(1);
+    setVoicePitch(1);
+    setVoiceVolume(1);
+    setSelectedVoiceIndex(-1);
+    toast.success("Voice settings reset to defaults");
+  }, []);
 
   // Keyboard shortcuts
   useKeyboardShortcuts({
@@ -862,8 +906,11 @@ export const SortingVisualizer = () => {
             >
               <RotateCcw className="h-4 w-4" />
             </Button>
+            
+            {/* Keyboard Shortcuts Help */}
+            <KeyboardShortcutsHelp triggerClassName="gap-1 md:gap-2 text-xs md:text-sm" />
 
-            <div className="flex items-center gap-4 ml-auto border-l border-border pl-4">
+            <div className="flex items-center gap-4 ml-auto border-l border-border pl-4 flex-wrap">
               <div className="flex items-center gap-2">
                 <Switch
                   id="step-explanation"
@@ -887,7 +934,7 @@ export const SortingVisualizer = () => {
                 </Label>
               </div>
               {voiceNarrationEnabled && (
-                <>
+                <div className="flex items-center gap-3 flex-wrap">
                   <div className="flex items-center gap-2">
                     <Label htmlFor="voice-select" className="text-xs text-muted-foreground whitespace-nowrap">
                       Voice:
@@ -951,7 +998,25 @@ export const SortingVisualizer = () => {
                       className="w-14"
                     />
                   </div>
-                </>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={testVoice}
+                    className="h-8 text-xs gap-1"
+                  >
+                    <Volume1 className="h-3 w-3" />
+                    Test
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={resetVoiceSettings}
+                    className="h-8 text-xs gap-1 text-muted-foreground hover:text-foreground"
+                  >
+                    <RotateCw className="h-3 w-3" />
+                    Reset
+                  </Button>
+                </div>
               )}
             </div>
           </div>
