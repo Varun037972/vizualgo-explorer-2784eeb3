@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
-import { Play, Pause, RotateCcw, SkipForward, SkipBack, Sparkles, CheckCircle2, Accessibility, FileText, ArrowLeftRight, GitCompare, Pointer, Volume2, VolumeX, Volume1, RotateCw } from "lucide-react";
+import { Play, Pause, RotateCcw, SkipForward, SkipBack, Sparkles, CheckCircle2, Accessibility, FileText, ArrowLeftRight, GitCompare, Pointer, Volume2, VolumeX, Volume1, RotateCw, Link2, Check } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
@@ -18,6 +18,7 @@ import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { KeyboardShortcutsHelp } from "@/components/KeyboardShortcutsHelp";
+import { useShareableState } from "@/hooks/useShareableState";
 
 interface StepExplanation {
   action: string;
@@ -59,6 +60,10 @@ export const SortingVisualizer = () => {
   const [startTime, setStartTime] = useState<number>(0);
   const [elapsedTime, setElapsedTime] = useState<number>(0);
   const [showStepExplanation, setShowStepExplanation] = useState(true);
+  const [linkCopied, setLinkCopied] = useState(false);
+  const [sharedStateLoaded, setSharedStateLoaded] = useState(false);
+  
+  const { parseStateFromURL, copyShareableURL, clearStateFromURL, hasSharedState } = useShareableState();
   const [voiceNarrationEnabled, setVoiceNarrationEnabled] = useState(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('voiceNarrationEnabled');
@@ -288,9 +293,54 @@ export const SortingVisualizer = () => {
     toast.success(`Custom array set with ${values.length} values`);
   };
 
+  // Load shared state from URL on mount
   useEffect(() => {
-    generateRandomArray();
-  }, [generateRandomArray]);
+    if (hasSharedState && !sharedStateLoaded) {
+      const sharedState = parseStateFromURL();
+      if (sharedState) {
+        if (sharedState.algorithm) {
+          setAlgorithm(sharedState.algorithm as Algorithm);
+        }
+        if (sharedState.array && sharedState.array.length > 0) {
+          setArray(sharedState.array);
+          setArraySize(sharedState.array.length);
+          setCustomInput(sharedState.array.join(", "));
+        }
+        if (sharedState.speed) {
+          setSpeed(sharedState.speed);
+        }
+        if (typeof sharedState.showExplanation === 'boolean') {
+          setShowStepExplanation(sharedState.showExplanation);
+        }
+        setSharedStateLoaded(true);
+        toast.success("Loaded shared visualization configuration!");
+        // Clear the URL params after loading
+        clearStateFromURL();
+      } else {
+        // If parsing failed, generate random array
+        generateRandomArray();
+      }
+    } else if (!hasSharedState && !sharedStateLoaded) {
+      generateRandomArray();
+      setSharedStateLoaded(true);
+    }
+  }, [hasSharedState, sharedStateLoaded, parseStateFromURL, clearStateFromURL, generateRandomArray]);
+
+  // Share current configuration
+  const handleShare = useCallback(async () => {
+    const state = {
+      algorithm,
+      array,
+      speed,
+      showExplanation: showStepExplanation,
+    };
+    
+    const success = await copyShareableURL(state);
+    if (success) {
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2000);
+    }
+  }, [algorithm, array, speed, showStepExplanation, copyShareableURL]);
 
   const bubbleSort = (arr: number[]): Step[] => {
     const steps: Step[] = [];
@@ -909,6 +959,27 @@ export const SortingVisualizer = () => {
             
             {/* Keyboard Shortcuts Help */}
             <KeyboardShortcutsHelp triggerClassName="gap-1 md:gap-2 text-xs md:text-sm" />
+            
+            {/* Share Button */}
+            <Button
+              onClick={handleShare}
+              variant="outline"
+              size="sm"
+              className="gap-1 md:gap-2 text-xs md:text-sm hover:scale-105 transition-transform"
+              disabled={array.length === 0}
+            >
+              {linkCopied ? (
+                <>
+                  <Check className="h-3 w-3 md:h-4 md:w-4 text-green-500" />
+                  <span className="hidden sm:inline">Copied!</span>
+                </>
+              ) : (
+                <>
+                  <Link2 className="h-3 w-3 md:h-4 md:w-4" />
+                  <span className="hidden sm:inline">Share</span>
+                </>
+              )}
+            </Button>
 
             <div className="flex items-center gap-4 ml-auto border-l border-border pl-4 flex-wrap">
               <div className="flex items-center gap-2">
