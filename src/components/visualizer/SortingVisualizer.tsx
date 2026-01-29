@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
-import { Play, Pause, RotateCcw, SkipForward, SkipBack, Sparkles, CheckCircle2, Accessibility, FileText, ArrowLeftRight, GitCompare, Pointer, Volume2, VolumeX, Volume1, RotateCw, Link2, Check } from "lucide-react";
+import { Play, Pause, RotateCcw, SkipForward, SkipBack, Sparkles, CheckCircle2, Accessibility, FileText, ArrowLeftRight, GitCompare, Pointer, Volume2, VolumeX, Volume1, RotateCw, Link2, Check, Bookmark } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
@@ -19,6 +19,12 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { KeyboardShortcutsHelp } from "@/components/KeyboardShortcutsHelp";
 import { useShareableState } from "@/hooks/useShareableState";
+import { useAudioFeedback } from "@/hooks/useAudioFeedback";
+import { useStepBookmarks } from "@/hooks/useStepBookmarks";
+import { usePerformanceHistory } from "@/hooks/usePerformanceHistory";
+import { AudioFeedbackPanel } from "./AudioFeedbackPanel";
+import { StepBookmarksPanel } from "./StepBookmarksPanel";
+import { PerformanceHistoryPanel } from "./PerformanceHistoryPanel";
 
 interface StepExplanation {
   action: string;
@@ -64,6 +70,38 @@ export const SortingVisualizer = () => {
   const [sharedStateLoaded, setSharedStateLoaded] = useState(false);
   
   const { parseStateFromURL, copyShareableURL, clearStateFromURL, hasSharedState } = useShareableState();
+  
+  // Audio feedback hook
+  const {
+    settings: audioSettings,
+    updateSettings: updateAudioSettings,
+    resetSettings: resetAudioSettings,
+    playCompareSound,
+    playSwapSound,
+    playCompleteSound,
+    testSound: testAudioSound,
+  } = useAudioFeedback();
+
+  // Step bookmarks hook
+  const {
+    bookmarks,
+    addBookmark,
+    removeBookmark,
+    hasBookmarkAtStep,
+    getNextBookmark,
+    getPreviousBookmark,
+    clearBookmarks,
+    toggleBookmark,
+  } = useStepBookmarks({ sessionId: algorithm });
+
+  // Performance history hook
+  const {
+    history: performanceHistory,
+    addRun: addPerformanceRun,
+    clearHistory: clearPerformanceHistory,
+    getComparisonChartData,
+    getAlgorithmComparisonData,
+  } = usePerformanceHistory();
   const [voiceNarrationEnabled, setVoiceNarrationEnabled] = useState(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('voiceNarrationEnabled');
@@ -810,6 +848,35 @@ export const SortingVisualizer = () => {
     toast.success(`Loaded ${algorithmType} sort example with ${values.length} values`);
   };
 
+  // Play audio feedback based on step state
+  useEffect(() => {
+    if (steps.length > 0 && currentStep > 0) {
+      const stepData = steps[currentStep];
+      if (stepData?.comparing && stepData.comparing.length > 0) {
+        playCompareSound();
+      }
+      if (stepData?.swapping && stepData.swapping.length > 0) {
+        playSwapSound();
+      }
+    }
+  }, [currentStep, steps, playCompareSound, playSwapSound]);
+
+  // Play completion sound and record performance
+  useEffect(() => {
+    if (isComplete && steps.length > 0) {
+      playCompleteSound();
+      // Record performance run
+      addPerformanceRun(
+        algorithm,
+        array.length,
+        stats.comparisons,
+        stats.swaps,
+        elapsedTime,
+        array
+      );
+    }
+  }, [isComplete, steps.length, playCompleteSound, addPerformanceRun, algorithm, array, stats, elapsedTime]);
+
   useEffect(() => {
     if (isPlaying && currentStep < steps.length - 1) {
       const timer = setTimeout(() => {
@@ -828,6 +895,23 @@ export const SortingVisualizer = () => {
     }
   }, [isPlaying, currentStep, steps.length, speed, startTime]);
 
+  // Jump to bookmark handlers
+  const handleJumpToNextBookmark = useCallback(() => {
+    const nextBookmark = getNextBookmark(currentStep);
+    if (nextBookmark) {
+      setCurrentStep(nextBookmark.stepIndex);
+      toast.info(`Jumped to: ${nextBookmark.label}`);
+    }
+  }, [currentStep, getNextBookmark]);
+
+  const handleJumpToPreviousBookmark = useCallback(() => {
+    const prevBookmark = getPreviousBookmark(currentStep);
+    if (prevBookmark) {
+      setCurrentStep(prevBookmark.stepIndex);
+      toast.info(`Jumped to: ${prevBookmark.label}`);
+    }
+  }, [currentStep, getPreviousBookmark]);
+
   const currentStepData = steps[currentStep] || { array, description: "Click Visualize to start" };
   const maxValue = Math.max(...array);
   const progress = steps.length > 0 ? ((currentStep + 1) / steps.length) * 100 : 0;
@@ -842,6 +926,35 @@ export const SortingVisualizer = () => {
 
       {/* Algorithm Information */}
       <AlgorithmInfo algorithm={algorithm} />
+
+      {/* Audio, Bookmarks, and Performance Panels */}
+      <div className="grid md:grid-cols-3 gap-4">
+        <AudioFeedbackPanel
+          settings={audioSettings}
+          onUpdateSettings={updateAudioSettings}
+          onReset={resetAudioSettings}
+          onTest={testAudioSound}
+        />
+        <StepBookmarksPanel
+          bookmarks={bookmarks}
+          currentStep={currentStep}
+          totalSteps={steps.length}
+          hasBookmarkAtStep={hasBookmarkAtStep}
+          onAddBookmark={addBookmark}
+          onRemoveBookmark={removeBookmark}
+          onToggleBookmark={toggleBookmark}
+          onJumpToStep={setCurrentStep}
+          onJumpToNextBookmark={handleJumpToNextBookmark}
+          onJumpToPreviousBookmark={handleJumpToPreviousBookmark}
+          onClearBookmarks={clearBookmarks}
+        />
+        <PerformanceHistoryPanel
+          history={performanceHistory}
+          onClearHistory={clearPerformanceHistory}
+          getComparisonChartData={getComparisonChartData}
+          getAlgorithmComparisonData={getAlgorithmComparisonData}
+        />
+      </div>
 
       {/* Code Editor */}
       <CodeEditor onCodeChange={(code, lang) => console.log("Code updated:", lang)} />

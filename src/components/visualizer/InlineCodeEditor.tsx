@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Toggle } from "@/components/ui/toggle";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { SyntaxThemeSelector, syntaxThemes, type SyntaxTheme } from "./SyntaxThemeSelector";
 
 interface Suggestion {
   label: string;
@@ -443,6 +444,20 @@ export const InlineCodeEditor = ({ value, onChange, placeholder, className }: In
   const [draggingSnippet, setDraggingSnippet] = useState<CodeSnippet | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
   
+  // Syntax theme state
+  const [syntaxTheme, setSyntaxTheme] = useState<SyntaxTheme>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("syntaxTheme");
+      return (saved as SyntaxTheme) || "monokai";
+    }
+    return "monokai";
+  });
+  
+  // Persist theme
+  useEffect(() => {
+    localStorage.setItem("syntaxTheme", syntaxTheme);
+  }, [syntaxTheme]);
+  
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
   const mirrorRef = useRef<HTMLDivElement>(null);
@@ -642,6 +657,7 @@ export const InlineCodeEditor = ({ value, onChange, placeholder, className }: In
   const highlightLine = useCallback((lineContent: string, lineStartIndex: number): string => {
     const tokens = tokenize(lineContent);
     let charIndex = lineStartIndex;
+    const theme = syntaxThemes[syntaxTheme];
     
     return tokens.map((token) => {
       const tokenStart = charIndex;
@@ -655,12 +671,22 @@ export const InlineCodeEditor = ({ value, onChange, placeholder, className }: In
         (tokenStart <= m.start && tokenEnd >= m.end)
       );
       
-      const colorClass = {
-        keyword: "text-purple-400", string: "text-green-400", number: "text-orange-400",
-        comment: "text-muted-foreground italic", function: "text-yellow-400",
-        operator: "text-cyan-400", variable: "text-blue-300", property: "text-cyan-300",
-        bracket: "text-foreground", default: "text-foreground",
-      }[token.type];
+      // Use theme colors
+      const colorMap: Record<TokenType, string> = {
+        keyword: theme.keyword,
+        string: theme.string,
+        number: theme.number,
+        comment: theme.comment,
+        function: theme.function,
+        operator: theme.operator,
+        variable: theme.variable,
+        property: theme.property,
+        bracket: theme.bracket,
+        default: theme.foreground,
+      };
+      
+      const color = colorMap[token.type];
+      const isComment = token.type === "comment";
       
       const escaped = token.value
         .replace(/&/g, "&amp;")
@@ -668,11 +694,12 @@ export const InlineCodeEditor = ({ value, onChange, placeholder, className }: In
         .replace(/>/g, "&gt;")
         .replace(/ /g, "&nbsp;");
       
-      const matchClass = isInMatch ? " bg-yellow-400/30 rounded" : "";
+      const matchClass = isInMatch ? " background-color: rgba(234, 179, 8, 0.3); border-radius: 2px;" : "";
+      const italicStyle = isComment ? "font-style: italic;" : "";
       
-      return `<span class="${colorClass}${matchClass}">${escaped}</span>`;
+      return `<span style="color: ${color};${matchClass}${italicStyle}">${escaped}</span>`;
     }).join("");
-  }, [tokenize, findMatches]);
+  }, [tokenize, findMatches, syntaxTheme]);
 
   // Find matching bracket
   const findMatchingBracket = useCallback((code: string, pos: number): { open: number; close: number } | null => {
@@ -1354,6 +1381,8 @@ export const InlineCodeEditor = ({ value, onChange, placeholder, className }: In
           <span className="text-xs hidden sm:inline">Snippets</span>
           <kbd className="ml-1.5 text-[10px] text-muted-foreground hidden sm:inline">⌘K</kbd>
         </Button>
+        <div className="w-px h-4 bg-border mx-1" />
+        <SyntaxThemeSelector value={syntaxTheme} onChange={setSyntaxTheme} />
         <div className="flex-1" />
         {cursors.length > 1 && (
           <span className="text-xs text-muted-foreground">
@@ -1571,16 +1600,28 @@ export const InlineCodeEditor = ({ value, onChange, placeholder, className }: In
         )}
         
         {/* Editor area */}
-        <div className={cn(
-          "relative flex flex-1 border rounded-md overflow-hidden bg-background transition-all",
-          isDragOver ? "border-primary ring-2 ring-primary/20" : "border-input"
-        )}>
+        <div 
+          className={cn(
+            "relative flex flex-1 border rounded-md overflow-hidden transition-all",
+            isDragOver ? "border-primary ring-2 ring-primary/20" : "border-input"
+          )}
+          style={{ backgroundColor: syntaxThemes[syntaxTheme].background }}
+        >
           {/* Line numbers with fold toggles */}
           <div 
-            className="line-numbers flex-shrink-0 bg-muted/30 border-r border-border overflow-hidden select-none"
-            style={{ width: "48px" }}
+            className="line-numbers flex-shrink-0 border-r border-border/30 overflow-hidden select-none"
+            style={{ 
+              width: "48px",
+              backgroundColor: `${syntaxThemes[syntaxTheme].background}ee`,
+            }}
           >
-            <div className="py-3 font-mono text-xs text-muted-foreground" style={{ lineHeight: "1.5" }}>
+            <div 
+              className="py-3 font-mono text-xs" 
+              style={{ 
+                lineHeight: "1.5",
+                color: syntaxThemes[syntaxTheme].lineNumber,
+              }}
+            >
               {visibleLines.map((line) => {
                 const region = foldableRegions.find(r => r.startLine === line.lineNumber - 1);
                 const isFoldable = line.canFold && region;
@@ -1675,7 +1716,11 @@ export const InlineCodeEditor = ({ value, onChange, placeholder, className }: In
               onDrop={handleDrop}
               placeholder={placeholder}
               className="w-full min-h-[200px] md:min-h-[300px] py-3 px-3 font-mono text-sm bg-transparent focus:outline-none focus:ring-2 focus:ring-ring resize-y relative z-10"
-              style={{ caretColor: "hsl(var(--foreground))", color: "transparent", lineHeight: "1.5" }}
+              style={{ 
+                caretColor: syntaxThemes[syntaxTheme].foreground, 
+                color: "transparent", 
+                lineHeight: "1.5" 
+              }}
               spellCheck={false}
             />
           </div>
@@ -1683,8 +1728,9 @@ export const InlineCodeEditor = ({ value, onChange, placeholder, className }: In
           {/* Minimap */}
           <div
             ref={minimapRef}
-            className="hidden md:block w-16 flex-shrink-0 bg-muted/20 border-l border-border cursor-pointer overflow-hidden relative"
+            className="hidden md:block w-16 flex-shrink-0 border-l border-border/30 cursor-pointer overflow-hidden relative"
             onClick={handleMinimapClick}
+            style={{ backgroundColor: `${syntaxThemes[syntaxTheme].background}dd` }}
           >
             <div className="p-1 overflow-hidden" style={{ maxHeight: "100%" }}>
               {minimapLines}
