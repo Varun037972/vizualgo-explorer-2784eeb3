@@ -45,15 +45,15 @@ const Hero = () => {
           </p>
 
           {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-4">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-6">
             <Link to="/visualizer">
-              <Button size="lg" className="bg-gradient-primary text-primary-foreground hover:opacity-90 transition-all shadow-glow-primary hover:shadow-glow-primary hover:scale-105 font-semibold px-8 group">
+              <Button variant="glow" size="lg" className="px-10 py-6 text-lg group">
                 Launch Visualizer Now
                 <Play className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
               </Button>
             </Link>
             <Link to="/demo">
-              <Button size="lg" variant="outline" className="border-primary/30 hover:bg-primary/10 hover:border-primary/50 backdrop-blur-sm px-8 group text-center font-bold font-sans">
+              <Button size="lg" variant="outline" className="px-10 py-6 text-lg group backdrop-blur-sm">
                 Watch Demo
                 <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
               </Button>

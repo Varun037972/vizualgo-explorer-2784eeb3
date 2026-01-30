@@ -47,22 +47,22 @@ export const Navigation = () => {
   const isHome = location.pathname === "/";
 
   return (
-    <nav className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
-      <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-2 group">
-          <div className="w-8 h-8 rounded-lg bg-gradient-primary flex items-center justify-center animate-glow-pulse">
+    <nav className="border-b border-border/50 bg-card/80 backdrop-blur-xl sticky top-0 z-50 shadow-lg shadow-background/50">
+      <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+        <Link to="/" className="flex items-center gap-3 group">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg shadow-primary/30 group-hover:shadow-primary/50 transition-all duration-300 group-hover:scale-105">
             <Code2 className="h-5 w-5 text-primary-foreground" />
           </div>
-          <span className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+          <span className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
             AlgoViz
           </span>
         </Link>
 
         <NavigationMenu>
-          <NavigationMenuList>
+          <NavigationMenuList className="gap-1">
             <NavigationMenuItem>
               <Link to="/">
-                <NavigationMenuLink className="flex items-center gap-2 px-4 py-2 hover:text-primary transition-colors">
+                <NavigationMenuLink className="flex items-center gap-2 px-4 py-2.5 rounded-lg hover:bg-primary/10 hover:text-primary transition-all duration-300 font-medium">
                   <Home className="h-4 w-4" />
                   Home
                 </NavigationMenuLink>
@@ -70,25 +70,25 @@ export const Navigation = () => {
             </NavigationMenuItem>
 
             <NavigationMenuItem>
-              <NavigationMenuTrigger className="flex items-center gap-2">
+              <NavigationMenuTrigger className="flex items-center gap-2 px-4 py-2.5 rounded-lg hover:bg-primary/10 font-medium">
                 <Code2 className="h-4 w-4" />
                 Algorithms
               </NavigationMenuTrigger>
               <NavigationMenuContent>
-                <div className="grid gap-3 p-6 w-[600px] md:grid-cols-2">
+                <div className="grid gap-4 p-6 w-[600px] md:grid-cols-2 bg-card/95 backdrop-blur-xl border border-border/50 rounded-xl shadow-2xl">
                   {algorithmCategories.map((category) => (
-                    <div key={category.title} className="space-y-2">
-                      <h3 className="font-semibold text-sm text-primary">{category.title}</h3>
+                    <div key={category.title} className="space-y-3">
+                      <h3 className="font-bold text-sm text-primary border-b border-primary/20 pb-2">{category.title}</h3>
                       <ul className="space-y-1">
                         {category.items.map((item) => (
                           <li key={item.name}>
                             <Link to="/visualizer">
-                              <button className="w-full text-left text-sm py-1.5 px-2 rounded hover:bg-accent/10 transition-colors group">
+                              <button className="w-full text-left text-sm py-2 px-3 rounded-lg hover:bg-primary/10 transition-all duration-300 group">
                                 <div className="flex items-center justify-between">
-                                  <span className="group-hover:text-primary transition-colors">
+                                  <span className="group-hover:text-primary transition-colors font-medium">
                                     {item.name}
                                   </span>
-                                  <span className="text-xs text-muted-foreground">
+                                  <span className="text-xs text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-full">
                                     {item.complexity}
                                   </span>
                                 </div>
@@ -105,7 +105,7 @@ export const Navigation = () => {
 
             <NavigationMenuItem>
               <Link to="/demo">
-                <NavigationMenuLink className="flex items-center gap-2 px-4 py-2 hover:text-primary transition-colors">
+                <NavigationMenuLink className="flex items-center gap-2 px-4 py-2.5 rounded-lg hover:bg-primary/10 hover:text-primary transition-all duration-300 font-medium">
                   <PlayCircle className="h-4 w-4" />
                   Demo
                 </NavigationMenuLink>
@@ -114,7 +114,7 @@ export const Navigation = () => {
 
             <NavigationMenuItem>
               <Link to="/docs">
-                <NavigationMenuLink className="flex items-center gap-2 px-4 py-2 hover:text-primary transition-colors">
+                <NavigationMenuLink className="flex items-center gap-2 px-4 py-2.5 rounded-lg hover:bg-primary/10 hover:text-primary transition-all duration-300 font-medium">
                   <BookOpen className="h-4 w-4" />
                   Docs
                 </NavigationMenuLink>
@@ -123,16 +123,16 @@ export const Navigation = () => {
           </NavigationMenuList>
         </NavigationMenu>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <Link to="/auth">
-            <Button variant="ghost" size="sm" className="gap-2">
+            <Button variant="ghost" size="sm" className="gap-2 hover:bg-primary/10">
               <LogIn className="h-4 w-4" />
               <span className="hidden md:inline">Login</span>
             </Button>
           </Link>
           {!isHome && (
             <Link to="/visualizer">
-              <Button className="bg-gradient-primary hover:shadow-glow-primary transition-all gap-2">
+              <Button variant="glow" size="default" className="gap-2">
                 <PlayCircle className="h-4 w-4" />
                 <span className="hidden md:inline">Launch Visualizer</span>
               </Button>
