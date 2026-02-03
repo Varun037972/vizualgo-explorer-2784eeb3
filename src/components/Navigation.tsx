@@ -1,6 +1,7 @@
+import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Code2, Home, BookOpen, PlayCircle, HelpCircle, LogIn } from "lucide-react";
+import { Code2, Home, BookOpen, PlayCircle, LogIn, Menu, X } from "lucide-react";
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -9,6 +10,13 @@ import {
   NavigationMenuList,
   NavigationMenuTrigger,
 } from "@/components/ui/navigation-menu";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 
 const algorithmCategories = [
   {
@@ -45,8 +53,10 @@ const algorithmCategories = [
 export const Navigation = () => {
   const location = useLocation();
   const isHome = location.pathname === "/";
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const scrollToSection = (sectionId: string) => {
+    setMobileMenuOpen(false);
     if (location.pathname !== "/") {
       window.location.href = `/#${sectionId}`;
       return;
@@ -69,7 +79,8 @@ export const Navigation = () => {
           </span>
         </Link>
 
-        <NavigationMenu>
+        {/* Desktop Navigation */}
+        <NavigationMenu className="hidden lg:flex">
           <NavigationMenuList className="gap-1">
             <NavigationMenuItem>
               <button onClick={() => scrollToSection("hero")}>
@@ -153,22 +164,122 @@ export const Navigation = () => {
           </NavigationMenuList>
         </NavigationMenu>
 
-        <div className="flex items-center gap-3">
+        {/* Desktop Right Side */}
+        <div className="hidden lg:flex items-center gap-3">
           <Link to="/auth">
             <Button variant="ghost" size="sm" className="gap-2 hover:bg-primary/10">
               <LogIn className="h-4 w-4" />
-              <span className="hidden md:inline">Login</span>
+              <span>Login</span>
             </Button>
           </Link>
           {!isHome && (
             <Link to="/visualizer">
               <Button variant="glow" size="default" className="gap-2">
                 <PlayCircle className="h-4 w-4" />
-                <span className="hidden md:inline">Launch Visualizer</span>
+                <span>Launch Visualizer</span>
               </Button>
             </Link>
           )}
         </div>
+
+        {/* Mobile Menu Button */}
+        <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+          <SheetTrigger asChild className="lg:hidden">
+            <Button variant="ghost" size="icon" className="hover:bg-primary/10">
+              <Menu className="h-6 w-6" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="right" className="w-[300px] bg-card/95 backdrop-blur-xl border-border/50">
+            <SheetHeader>
+              <SheetTitle className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+                  <Code2 className="h-4 w-4 text-primary-foreground" />
+                </div>
+                <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent font-bold">
+                  AlgoViz
+                </span>
+              </SheetTitle>
+            </SheetHeader>
+            <div className="mt-8 flex flex-col gap-2">
+              <button
+                onClick={() => scrollToSection("hero")}
+                className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-primary/10 transition-all text-left"
+              >
+                <Home className="h-5 w-5 text-primary" />
+                <span className="font-medium">Home</span>
+              </button>
+              
+              <Link 
+                to="/visualizer" 
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-primary/10 transition-all"
+              >
+                <Code2 className="h-5 w-5 text-primary" />
+                <span className="font-medium">Visualizer</span>
+              </Link>
+              
+              <Link 
+                to="/demo" 
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-primary/10 transition-all"
+              >
+                <PlayCircle className="h-5 w-5 text-primary" />
+                <span className="font-medium">Demo</span>
+              </Link>
+              
+              <Link 
+                to="/docs" 
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-primary/10 transition-all"
+              >
+                <BookOpen className="h-5 w-5 text-primary" />
+                <span className="font-medium">Docs</span>
+              </Link>
+              
+              {isHome && (
+                <>
+                  <div className="h-px bg-border/50 my-2" />
+                  <button
+                    onClick={() => scrollToSection("features")}
+                    className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-primary/10 transition-all text-left"
+                  >
+                    <span className="font-medium text-muted-foreground">Features</span>
+                  </button>
+                  <button
+                    onClick={() => scrollToSection("how-it-works")}
+                    className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-primary/10 transition-all text-left"
+                  >
+                    <span className="font-medium text-muted-foreground">How It Works</span>
+                  </button>
+                  <button
+                    onClick={() => scrollToSection("use-cases")}
+                    className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-primary/10 transition-all text-left"
+                  >
+                    <span className="font-medium text-muted-foreground">Use Cases</span>
+                  </button>
+                </>
+              )}
+              
+              <div className="h-px bg-border/50 my-2" />
+              
+              <Link 
+                to="/auth" 
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-primary/10 transition-all"
+              >
+                <LogIn className="h-5 w-5 text-primary" />
+                <span className="font-medium">Login</span>
+              </Link>
+              
+              <Link to="/visualizer" onClick={() => setMobileMenuOpen(false)} className="mt-4">
+                <Button variant="glow" className="w-full gap-2">
+                  <PlayCircle className="h-4 w-4" />
+                  Launch Visualizer
+                </Button>
+              </Link>
+            </div>
+          </SheetContent>
+        </Sheet>
       </div>
     </nav>
   );
