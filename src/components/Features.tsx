@@ -41,7 +41,7 @@ const Features = () => {
   const headerAnimation = useScrollAnimation({ threshold: 0.2 });
   
   return (
-    <section className="py-20 bg-background relative overflow-hidden">
+    <section id="features" className="py-20 bg-background relative overflow-hidden scroll-mt-20">
       {/* Animated Background decoration */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,hsl(193_100%_50%/0.1),transparent_50%)] animate-pulse"></div>
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_50%,hsl(270_70%_65%/0.1),transparent_50%)] animate-pulse" style={{ animationDelay: '1s' }}></div>

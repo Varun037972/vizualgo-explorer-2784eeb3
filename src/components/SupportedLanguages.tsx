@@ -26,7 +26,7 @@ const languages = [
 
 const SupportedLanguages = () => {
   return (
-    <section className="py-20 bg-background relative overflow-hidden">
+    <section id="languages" className="py-20 bg-background relative overflow-hidden scroll-mt-20">
       {/* Background Decoration */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,hsl(193_100%_50%/0.05),transparent_70%)]"></div>
 

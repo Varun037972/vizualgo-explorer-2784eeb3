@@ -30,7 +30,7 @@ const userTypes = [
 
 const TargetUsers = () => {
   return (
-    <section className="py-20 bg-card/30">
+    <section id="use-cases" className="py-20 bg-card/30 scroll-mt-20">
       <div className="container mx-auto px-4">
         {/* Section Header */}
         <div className="text-center mb-16 space-y-4">

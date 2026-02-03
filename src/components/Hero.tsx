@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, Play } from "lucide-react";
 import heroImage from "@/assets/hero-algorithm-bg.jpg";
 const Hero = () => {
-  return <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
+  return <section id="hero" className="relative min-h-screen flex items-center justify-center overflow-hidden scroll-mt-20">
       {/* Login Button - moved to Navigation */}
       
       {/* Background Image with Overlay */}
@@ -87,11 +87,14 @@ const Hero = () => {
       </div>
 
       {/* Scroll Indicator */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 animate-bounce">
-        <div className="w-6 h-10 rounded-full border-2 border-primary/50 flex items-start justify-center p-2">
+      <button 
+        onClick={() => document.getElementById("problem-solution")?.scrollIntoView({ behavior: "smooth" })}
+        className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 animate-bounce cursor-pointer group"
+      >
+        <div className="w-6 h-10 rounded-full border-2 border-primary/50 group-hover:border-primary flex items-start justify-center p-2 transition-colors">
           <div className="w-1 h-2 bg-primary rounded-full animate-pulse"></div>
         </div>
-      </div>
+      </button>
     </section>;
 };
 export default Hero;

@@ -7,7 +7,7 @@ const ProblemSolution = () => {
   const solutionAnimation = useScrollAnimation({ threshold: 0.2 });
   
   return (
-    <section className="py-20 bg-card/30">
+    <section id="problem-solution" className="py-20 bg-card/30 scroll-mt-20">
       <div className="container mx-auto px-4">
         <div className="max-w-5xl mx-auto">
           {/* Section Header */}

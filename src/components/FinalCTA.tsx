@@ -4,7 +4,7 @@ import { ArrowRight, Sparkles } from "lucide-react";
 
 const FinalCTA = () => {
   return (
-    <section className="py-20 bg-background relative overflow-hidden">
+    <section id="get-started" className="py-20 bg-background relative overflow-hidden scroll-mt-20">
       {/* Animated Background */}
       <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-background to-accent/10"></div>
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,hsl(193_100%_50%/0.15),transparent_50%)]"></div>

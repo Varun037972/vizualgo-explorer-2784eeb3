@@ -46,6 +46,17 @@ export const Navigation = () => {
   const location = useLocation();
   const isHome = location.pathname === "/";
 
+  const scrollToSection = (sectionId: string) => {
+    if (location.pathname !== "/") {
+      window.location.href = `/#${sectionId}`;
+      return;
+    }
+    const element = document.getElementById(sectionId);
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
   return (
     <nav className="border-b border-border/50 bg-card/80 backdrop-blur-xl sticky top-0 z-50 shadow-lg shadow-background/50">
       <div className="container mx-auto px-4 py-4 flex items-center justify-between">
@@ -61,12 +72,12 @@ export const Navigation = () => {
         <NavigationMenu>
           <NavigationMenuList className="gap-1">
             <NavigationMenuItem>
-              <Link to="/">
-                <NavigationMenuLink className="flex items-center gap-2 px-4 py-2.5 rounded-lg hover:bg-primary/10 hover:text-primary transition-all duration-300 font-medium">
+              <button onClick={() => scrollToSection("hero")}>
+                <NavigationMenuLink className="flex items-center gap-2 px-4 py-2.5 rounded-lg hover:bg-primary/10 hover:text-primary transition-all duration-300 font-medium cursor-pointer">
                   <Home className="h-4 w-4" />
                   Home
                 </NavigationMenuLink>
-              </Link>
+              </button>
             </NavigationMenuItem>
 
             <NavigationMenuItem>
@@ -120,6 +131,25 @@ export const Navigation = () => {
                 </NavigationMenuLink>
               </Link>
             </NavigationMenuItem>
+
+            {isHome && (
+              <>
+                <NavigationMenuItem>
+                  <button onClick={() => scrollToSection("features")}>
+                    <NavigationMenuLink className="flex items-center gap-2 px-4 py-2.5 rounded-lg hover:bg-primary/10 hover:text-primary transition-all duration-300 font-medium cursor-pointer">
+                      Features
+                    </NavigationMenuLink>
+                  </button>
+                </NavigationMenuItem>
+                <NavigationMenuItem>
+                  <button onClick={() => scrollToSection("how-it-works")}>
+                    <NavigationMenuLink className="flex items-center gap-2 px-4 py-2.5 rounded-lg hover:bg-primary/10 hover:text-primary transition-all duration-300 font-medium cursor-pointer">
+                      How It Works
+                    </NavigationMenuLink>
+                  </button>
+                </NavigationMenuItem>
+              </>
+            )}
           </NavigationMenuList>
         </NavigationMenu>
 
