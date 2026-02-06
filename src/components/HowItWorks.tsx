@@ -1,5 +1,6 @@
 import { FileCode, Play, Search } from "lucide-react";
 import { useScrollAnimation } from "@/hooks/useScrollAnimation";
+import { motion } from "framer-motion";
 
 const steps = [
   {
@@ -59,38 +60,52 @@ const HowItWorks = () => {
 
             {steps.map((step, index) => {
               const Icon = step.icon;
-              const isFirst = index === 0;
               const isLast = index === steps.length - 1;
               const stepAnimation = useScrollAnimation({ threshold: 0.2 });
 
               return (
-                <div
+                <motion.div
                   key={index}
                   ref={stepAnimation.ref}
-                  className={`relative group transition-all duration-700 ${
-                    stepAnimation.isVisible 
-                      ? 'opacity-100 translate-y-0' 
-                      : 'opacity-0 translate-y-10'
-                  }`}
-                  style={{ transitionDelay: `${index * 150}ms` }}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={stepAnimation.isVisible ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+                  transition={{ duration: 0.5, delay: index * 0.15 }}
+                  whileHover={{ y: -8, scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="relative group"
                 >
                   {/* Step Card */}
-                  <div className="bg-card border border-border hover:border-primary/30 rounded-2xl p-8 space-y-6 transition-all duration-500 hover:shadow-glow-primary hover:-translate-y-2 hover:scale-[1.02] relative z-10">
+                  <div className="bg-card border border-border hover:border-primary/50 rounded-2xl p-8 space-y-6 transition-all duration-500 hover:shadow-[0_20px_50px_-15px_hsl(var(--primary)/0.3)] relative z-10 overflow-hidden">
+                    {/* Gradient overlay on hover */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-primary/0 to-secondary/0 group-hover:from-primary/5 group-hover:to-secondary/5 transition-all duration-500" />
+                    
                     {/* Number Badge */}
-                    <div className="absolute -top-4 -right-4 w-12 h-12 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground font-bold text-lg shadow-glow-primary">
+                    <motion.div 
+                      className="absolute -top-4 -right-4 w-12 h-12 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground font-bold text-lg shadow-glow-primary"
+                      whileHover={{ scale: 1.1, rotate: 10 }}
+                      transition={{ type: "spring", stiffness: 400, damping: 10 }}
+                    >
                       {step.number}
-                    </div>
+                    </motion.div>
 
                     {/* Icon */}
-                    <div className={`w-16 h-16 rounded-2xl bg-${step.color}/20 flex items-center justify-center group-hover:scale-110 transition-transform`}>
-                      <Icon className={`h-8 w-8 text-${step.color}`} />
-                    </div>
+                    <motion.div 
+                      className={`w-16 h-16 rounded-2xl bg-${step.color}/20 flex items-center justify-center relative`}
+                      whileHover={{ scale: 1.1, rotate: 3 }}
+                      transition={{ type: "spring", stiffness: 400, damping: 10 }}
+                    >
+                      <div className={`absolute inset-0 rounded-2xl bg-${step.color}/20 blur-lg opacity-0 group-hover:opacity-60 transition-opacity duration-300`} />
+                      <Icon className={`h-8 w-8 text-${step.color} relative z-10`} />
+                    </motion.div>
 
                     {/* Content */}
-                    <div className="space-y-3">
-                      <h3 className="text-2xl font-bold">{step.title}</h3>
+                    <div className="space-y-3 relative z-10">
+                      <h3 className="text-2xl font-bold group-hover:text-primary transition-colors duration-300">{step.title}</h3>
                       <p className="text-muted-foreground leading-relaxed">{step.description}</p>
                     </div>
+                    
+                    {/* Bottom accent */}
+                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-primary/0 to-transparent group-hover:via-primary/50 transition-all duration-500" />
                   </div>
 
                   {/* Arrow (for mobile) */}
@@ -99,7 +114,7 @@ const HowItWorks = () => {
                       <div className="w-0.5 h-8 bg-gradient-to-b from-primary to-secondary"></div>
                     </div>
                   )}
-                </div>
+                </motion.div>
               );
             })}
           </div>
