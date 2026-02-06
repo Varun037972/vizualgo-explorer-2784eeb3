@@ -1,4 +1,5 @@
 import { Code } from "lucide-react";
+import { motion } from "framer-motion";
 
 const languages = [
   {
@@ -50,31 +51,61 @@ const SupportedLanguages = () => {
         {/* Languages Grid */}
         <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
           {languages.map((language, index) => (
-            <div
+            <motion.div
               key={index}
-              className={`group relative bg-gradient-to-br ${language.color} border ${language.borderColor} rounded-2xl p-8 hover:shadow-glow-primary transition-all cursor-pointer hover:-translate-y-2`}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-50px" }}
+              transition={{ duration: 0.5, delay: index * 0.1 }}
+              whileHover={{ y: -10, scale: 1.03 }}
+              whileTap={{ scale: 0.98 }}
+              className={`group relative bg-gradient-to-br ${language.color} border ${language.borderColor} rounded-2xl p-8 hover:shadow-[0_20px_50px_-15px_hsl(var(--primary)/0.4)] transition-all cursor-pointer overflow-hidden`}
             >
+              {/* Shimmer effect */}
+              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+              </div>
+              
               {/* Language Icon */}
-              <div className="text-6xl mb-4 group-hover:scale-110 transition-transform">{language.icon}</div>
+              <motion.div 
+                className="text-6xl mb-4"
+                whileHover={{ scale: 1.2, rotate: 10 }}
+                transition={{ type: "spring", stiffness: 400, damping: 10 }}
+              >
+                {language.icon}
+              </motion.div>
 
               {/* Language Name */}
-              <h3 className="text-3xl font-bold mb-4">{language.name}</h3>
+              <h3 className="text-3xl font-bold mb-4 group-hover:text-primary transition-colors duration-300">{language.name}</h3>
 
               {/* Features */}
               <ul className="space-y-2">
                 {language.features.map((feature, featureIndex) => (
-                  <li key={featureIndex} className="flex items-center gap-2 text-muted-foreground">
-                    <div className="w-1.5 h-1.5 rounded-full bg-primary"></div>
+                  <motion.li 
+                    key={featureIndex} 
+                    className="flex items-center gap-2 text-muted-foreground"
+                    initial={{ opacity: 0, x: -10 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: 0.2 + featureIndex * 0.05 }}
+                  >
+                    <div className="w-1.5 h-1.5 rounded-full bg-primary group-hover:scale-125 transition-transform duration-300"></div>
                     <span className="text-sm">{feature}</span>
-                  </li>
+                  </motion.li>
                 ))}
               </ul>
 
               {/* Badge */}
-              <div className="absolute top-4 right-4 px-3 py-1 rounded-full bg-primary/20 border border-primary/30">
+              <motion.div 
+                className="absolute top-4 right-4 px-3 py-1 rounded-full bg-primary/20 border border-primary/30"
+                whileHover={{ scale: 1.1 }}
+              >
                 <span className="text-xs font-semibold text-primary">Supported</span>
-              </div>
-            </div>
+              </motion.div>
+              
+              {/* Bottom accent line */}
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-primary/0 to-transparent group-hover:via-primary/50 transition-all duration-500" />
+            </motion.div>
           ))}
         </div>
 
