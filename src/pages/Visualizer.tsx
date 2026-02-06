@@ -17,23 +17,24 @@ import { OnboardingTutorial } from "@/components/OnboardingTutorial";
 import { useExportVisualization } from "@/hooks/useExportVisualization";
 import { toast } from "sonner";
 import { KeyboardShortcutsHelp } from "@/components/KeyboardShortcutsHelp";
-
 const Visualizer = () => {
   const [isRacing, setIsRacing] = useState(false);
   const [activeTab, setActiveTab] = useState("standard");
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const { exportAsImage, startVideoRecording, exportAsGIF, isExporting } = useExportVisualization();
+  const {
+    exportAsImage,
+    startVideoRecording,
+    exportAsGIF,
+    isExporting
+  } = useExportVisualization();
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
-
   const handleExportImage = () => {
     exportAsImage("visualizer-content", `${activeTab}-visualization.png`);
   };
-
   const handleStartRecording = () => {
     const recorder = startVideoRecording("visualizer-content");
     setMediaRecorder(recorder);
   };
-
   const handleStopRecording = () => {
     if (mediaRecorder) {
       mediaRecorder.stop();
@@ -41,13 +42,10 @@ const Visualizer = () => {
       toast.success("Recording stopped");
     }
   };
-
   const handleExportGIF = () => {
     exportAsGIF("visualizer-content", 5000);
   };
-
-  return (
-    <div className="min-h-screen bg-background relative">
+  return <div className="min-h-screen bg-background relative">
       <AnimatedBackground />
       <Navigation />
 
@@ -64,35 +62,18 @@ const Visualizer = () => {
                   </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowOnboarding(true)}
-                    className="gap-1 md:gap-2 text-xs md:text-sm"
-                  >
+                  <Button variant="outline" size="sm" onClick={() => setShowOnboarding(true)} className="gap-1 md:gap-2 text-xs md:text-sm border-4">
                     <HelpCircle className="h-3 w-3 md:h-4 md:w-4" />
                     <span className="hidden sm:inline">Tutorial</span>
                     <span className="sm:hidden">Help</span>
                   </Button>
                   <KeyboardShortcutsHelp triggerClassName="gap-1 md:gap-2 text-xs md:text-sm" />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleExportImage}
-                    disabled={isExporting}
-                    className="gap-1 md:gap-2 text-xs md:text-sm"
-                  >
+                  <Button variant="outline" size="sm" onClick={handleExportImage} disabled={isExporting} className="gap-1 md:gap-2 text-xs md:text-sm">
                     <Share2 className="h-3 w-3 md:h-4 md:w-4" />
                     <span className="hidden sm:inline">Export Image</span>
                     <span className="sm:hidden">Image</span>
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleExportGIF}
-                    disabled={isExporting}
-                    className="gap-1 md:gap-2 text-xs md:text-sm"
-                  >
+                  <Button variant="outline" size="sm" onClick={handleExportGIF} disabled={isExporting} className="gap-1 md:gap-2 text-xs md:text-sm">
                     <Share2 className="h-3 w-3 md:h-4 md:w-4" />
                     <span className="hidden sm:inline">Export GIF</span>
                     <span className="sm:hidden">GIF</span>
@@ -143,12 +124,7 @@ const Visualizer = () => {
                   Watch multiple sorting algorithms race against each other on the same dataset. 
                   See which algorithm performs best in real-time!
                 </p>
-                <Button
-                  size="lg"
-                  onClick={() => setIsRacing(true)}
-                  disabled={isRacing}
-                  className="bg-gradient-primary hover:shadow-glow-primary hover:scale-105 transition-all"
-                >
+                <Button size="lg" onClick={() => setIsRacing(true)} disabled={isRacing} className="bg-gradient-primary hover:shadow-glow-primary hover:scale-105 transition-all">
                   <Flame className="mr-2 h-5 w-5" />
                   Start Race
                 </Button>
@@ -195,8 +171,6 @@ const Visualizer = () => {
         </div>
       </div>
       <OnboardingTutorial open={showOnboarding} onClose={() => setShowOnboarding(false)} />
-    </div>
-  );
+    </div>;
 };
-
 export default Visualizer;
