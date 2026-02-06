@@ -25,13 +25,11 @@ import { usePerformanceHistory } from "@/hooks/usePerformanceHistory";
 import { AudioFeedbackPanel } from "./AudioFeedbackPanel";
 import { StepBookmarksPanel } from "./StepBookmarksPanel";
 import { PerformanceHistoryPanel } from "./PerformanceHistoryPanel";
-
 interface StepExplanation {
   action: string;
   pointerChanges: string;
   comparison: string;
 }
-
 interface Step {
   array: number[];
   comparing?: number[];
@@ -41,17 +39,14 @@ interface Step {
   description: string;
   explanation?: StepExplanation;
 }
-
 type Algorithm = "bubble" | "quick" | "merge" | "insertion" | "selection";
-
 const algorithms = {
   bubble: "Bubble Sort",
   quick: "Quick Sort",
   merge: "Merge Sort",
   insertion: "Insertion Sort",
-  selection: "Selection Sort",
+  selection: "Selection Sort"
 };
-
 export const SortingVisualizer = () => {
   const [array, setArray] = useState<number[]>([]);
   const [steps, setSteps] = useState<Step[]>([]);
@@ -60,7 +55,11 @@ export const SortingVisualizer = () => {
   const [speed, setSpeed] = useState(500);
   const [arraySize, setArraySize] = useState(15);
   const [algorithm, setAlgorithm] = useState<Algorithm>("bubble");
-  const [stats, setStats] = useState({ comparisons: 0, swaps: 0, timeComplexity: "O(n²)" });
+  const [stats, setStats] = useState({
+    comparisons: 0,
+    swaps: 0,
+    timeComplexity: "O(n²)"
+  });
   const [isComplete, setIsComplete] = useState(false);
   const [customInput, setCustomInput] = useState("");
   const [startTime, setStartTime] = useState<number>(0);
@@ -68,9 +67,13 @@ export const SortingVisualizer = () => {
   const [showStepExplanation, setShowStepExplanation] = useState(true);
   const [linkCopied, setLinkCopied] = useState(false);
   const [sharedStateLoaded, setSharedStateLoaded] = useState(false);
-  
-  const { parseStateFromURL, copyShareableURL, clearStateFromURL, hasSharedState } = useShareableState();
-  
+  const {
+    parseStateFromURL,
+    copyShareableURL,
+    clearStateFromURL,
+    hasSharedState
+  } = useShareableState();
+
   // Audio feedback hook
   const {
     settings: audioSettings,
@@ -79,7 +82,7 @@ export const SortingVisualizer = () => {
     playCompareSound,
     playSwapSound,
     playCompleteSound,
-    testSound: testAudioSound,
+    testSound: testAudioSound
   } = useAudioFeedback();
 
   // Step bookmarks hook
@@ -91,8 +94,10 @@ export const SortingVisualizer = () => {
     getNextBookmark,
     getPreviousBookmark,
     clearBookmarks,
-    toggleBookmark,
-  } = useStepBookmarks({ sessionId: algorithm });
+    toggleBookmark
+  } = useStepBookmarks({
+    sessionId: algorithm
+  });
 
   // Performance history hook
   const {
@@ -100,7 +105,7 @@ export const SortingVisualizer = () => {
     addRun: addPerformanceRun,
     clearHistory: clearPerformanceHistory,
     getComparisonChartData,
-    getAlgorithmComparisonData,
+    getAlgorithmComparisonData
   } = usePerformanceHistory();
   const [voiceNarrationEnabled, setVoiceNarrationEnabled] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -145,15 +150,12 @@ export const SortingVisualizer = () => {
   useEffect(() => {
     if (typeof window !== 'undefined' && window.speechSynthesis) {
       speechSynthRef.current = window.speechSynthesis;
-      
       const loadVoices = () => {
         const voices = speechSynthRef.current?.getVoices() || [];
         setAvailableVoices(voices);
       };
-      
       loadVoices();
       speechSynthRef.current.onvoiceschanged = loadVoices;
-      
       return () => {
         speechSynthRef.current?.cancel();
       };
@@ -164,19 +166,15 @@ export const SortingVisualizer = () => {
   useEffect(() => {
     localStorage.setItem('voiceNarrationEnabled', JSON.stringify(voiceNarrationEnabled));
   }, [voiceNarrationEnabled]);
-
   useEffect(() => {
     localStorage.setItem('voiceSpeed', voiceSpeed.toString());
   }, [voiceSpeed]);
-
   useEffect(() => {
     localStorage.setItem('voicePitch', voicePitch.toString());
   }, [voicePitch]);
-
   useEffect(() => {
     localStorage.setItem('voiceVolume', voiceVolume.toString());
   }, [voiceVolume]);
-
   useEffect(() => {
     localStorage.setItem('selectedVoiceIndex', selectedVoiceIndex.toString());
   }, [selectedVoiceIndex]);
@@ -184,32 +182,24 @@ export const SortingVisualizer = () => {
   // Voice narration function
   const speak = useCallback((text: string) => {
     if (!speechSynthRef.current || !voiceNarrationEnabled) return;
-    
+
     // Cancel any ongoing speech
     speechSynthRef.current.cancel();
-    
     const utterance = new SpeechSynthesisUtterance(text);
-    
+
     // Use selected voice or find a good default English voice
     let voice: SpeechSynthesisVoice | undefined;
     if (selectedVoiceIndex >= 0 && availableVoices[selectedVoiceIndex]) {
       voice = availableVoices[selectedVoiceIndex];
     } else {
-      voice = availableVoices.find(
-        v => v.lang.startsWith('en') && v.name.includes('Google')
-      ) || availableVoices.find(
-        v => v.lang.startsWith('en')
-      ) || availableVoices[0];
+      voice = availableVoices.find(v => v.lang.startsWith('en') && v.name.includes('Google')) || availableVoices.find(v => v.lang.startsWith('en')) || availableVoices[0];
     }
-    
     if (voice) {
       utterance.voice = voice;
     }
-    
     utterance.rate = voiceSpeed;
     utterance.pitch = voicePitch;
     utterance.volume = voiceVolume;
-    
     speechSynthRef.current.speak(utterance);
   }, [voiceNarrationEnabled, availableVoices, voiceSpeed, voicePitch, voiceVolume, selectedVoiceIndex]);
 
@@ -256,30 +246,21 @@ export const SortingVisualizer = () => {
       toast.error("Speech synthesis not available");
       return;
     }
-    
     speechSynthRef.current.cancel();
     const testText = "Testing voice settings. Comparing element 5 with element 8, swap needed!";
     const utterance = new SpeechSynthesisUtterance(testText);
-    
     let voice: SpeechSynthesisVoice | undefined;
     if (selectedVoiceIndex >= 0 && availableVoices[selectedVoiceIndex]) {
       voice = availableVoices[selectedVoiceIndex];
     } else {
-      voice = availableVoices.find(
-        v => v.lang.startsWith('en') && v.name.includes('Google')
-      ) || availableVoices.find(
-        v => v.lang.startsWith('en')
-      ) || availableVoices[0];
+      voice = availableVoices.find(v => v.lang.startsWith('en') && v.name.includes('Google')) || availableVoices.find(v => v.lang.startsWith('en')) || availableVoices[0];
     }
-    
     if (voice) {
       utterance.voice = voice;
     }
-    
     utterance.rate = voiceSpeed;
     utterance.pitch = voicePitch;
     utterance.volume = voiceVolume;
-    
     speechSynthRef.current.speak(utterance);
     toast.info("Playing test voice...");
   }, [availableVoices, selectedVoiceIndex, voiceSpeed, voicePitch, voiceVolume]);
@@ -299,29 +280,24 @@ export const SortingVisualizer = () => {
     onPause: () => isPlaying && setIsPlaying(false),
     onStepForward: () => !isPlaying && currentStep < steps.length - 1 && setCurrentStep(prev => prev + 1),
     onStepBackward: () => !isPlaying && currentStep > 0 && setCurrentStep(prev => prev - 1),
-    onReset: () => !isPlaying && generateRandomArray(),
+    onReset: () => !isPlaying && generateRandomArray()
   });
-
   const generateRandomArray = useCallback(() => {
-    const newArray = Array.from({ length: arraySize }, () => Math.floor(Math.random() * 100) + 10);
+    const newArray = Array.from({
+      length: arraySize
+    }, () => Math.floor(Math.random() * 100) + 10);
     setArray(newArray);
     setSteps([]);
     setCurrentStep(0);
     setIsPlaying(false);
     setIsComplete(false);
   }, [arraySize]);
-
   const setCustomArray = () => {
-    const values = customInput
-      .split(",")
-      .map((v) => parseInt(v.trim()))
-      .filter((v) => !isNaN(v) && v > 0 && v <= 100);
-    
+    const values = customInput.split(",").map(v => parseInt(v.trim())).filter(v => !isNaN(v) && v > 0 && v <= 100);
     if (values.length === 0) {
       toast.error("Please enter valid numbers (1-100) separated by commas");
       return;
     }
-    
     setArray(values);
     setArraySize(values.length);
     setSteps([]);
@@ -370,25 +346,22 @@ export const SortingVisualizer = () => {
       algorithm,
       array,
       speed,
-      showExplanation: showStepExplanation,
+      showExplanation: showStepExplanation
     };
-    
     const success = await copyShareableURL(state);
     if (success) {
       setLinkCopied(true);
       setTimeout(() => setLinkCopied(false), 2000);
     }
   }, [algorithm, array, speed, showStepExplanation, copyShareableURL]);
-
   const bubbleSort = (arr: number[]): Step[] => {
     const steps: Step[] = [];
     const array = [...arr];
     let comparisons = 0;
     let swaps = 0;
     const sorted: number[] = [];
-
-    steps.push({ 
-      array: [...array], 
+    steps.push({
+      array: [...array],
       description: "Starting Bubble Sort",
       explanation: {
         action: "Initializing Bubble Sort algorithm",
@@ -396,7 +369,6 @@ export const SortingVisualizer = () => {
         comparison: "No comparisons made"
       }
     });
-
     for (let i = 0; i < array.length; i++) {
       for (let j = 0; j < array.length - i - 1; j++) {
         comparisons++;
@@ -411,7 +383,6 @@ export const SortingVisualizer = () => {
             comparison: `${array[j]} ${array[j] > array[j + 1] ? '>' : '≤'} ${array[j + 1]} → ${array[j] > array[j + 1] ? 'Swap needed' : 'No swap needed'}`
           }
         });
-
         if (array[j] > array[j + 1]) {
           swaps++;
           const temp = array[j];
@@ -431,10 +402,11 @@ export const SortingVisualizer = () => {
       }
       sorted.push(array.length - i - 1);
     }
-
-    steps.push({ 
-      array: [...array], 
-      sorted: Array.from({ length: array.length }, (_, i) => i), 
+    steps.push({
+      array: [...array],
+      sorted: Array.from({
+        length: array.length
+      }, (_, i) => i),
       description: "Sorted!",
       explanation: {
         action: "Bubble Sort complete! Array is now sorted",
@@ -442,20 +414,22 @@ export const SortingVisualizer = () => {
         comparison: `Total: ${comparisons} comparisons, ${swaps} swaps`
       }
     });
-    setStats({ comparisons, swaps, timeComplexity: "O(n²)" });
+    setStats({
+      comparisons,
+      swaps,
+      timeComplexity: "O(n²)"
+    });
     return steps;
   };
-
   const insertionSort = (arr: number[]): Step[] => {
     const steps: Step[] = [];
     const array = [...arr];
     let comparisons = 0;
     let swaps = 0;
     const sorted: number[] = [0];
-
-    steps.push({ 
-      array: [...array], 
-      sorted: [0], 
+    steps.push({
+      array: [...array],
+      sorted: [0],
       description: "Starting Insertion Sort",
       explanation: {
         action: "Initializing Insertion Sort - first element is already 'sorted'",
@@ -463,11 +437,9 @@ export const SortingVisualizer = () => {
         comparison: "No comparisons made yet"
       }
     });
-
     for (let i = 1; i < array.length; i++) {
       const key = array[i];
       let j = i - 1;
-
       steps.push({
         array: [...array],
         comparing: [i],
@@ -479,7 +451,6 @@ export const SortingVisualizer = () => {
           comparison: `Will compare ${key} with sorted elements`
         }
       });
-
       while (j >= 0 && array[j] > key) {
         comparisons++;
         swaps++;
@@ -501,10 +472,11 @@ export const SortingVisualizer = () => {
       array[j + 1] = key;
       sorted.push(i);
     }
-
-    steps.push({ 
-      array: [...array], 
-      sorted: Array.from({ length: array.length }, (_, i) => i), 
+    steps.push({
+      array: [...array],
+      sorted: Array.from({
+        length: array.length
+      }, (_, i) => i),
       description: "Sorted!",
       explanation: {
         action: "Insertion Sort complete! Array is now sorted",
@@ -512,19 +484,21 @@ export const SortingVisualizer = () => {
         comparison: `Total: ${comparisons} comparisons, ${swaps} shifts`
       }
     });
-    setStats({ comparisons, swaps, timeComplexity: "O(n²)" });
+    setStats({
+      comparisons,
+      swaps,
+      timeComplexity: "O(n²)"
+    });
     return steps;
   };
-
   const selectionSort = (arr: number[]): Step[] => {
     const steps: Step[] = [];
     const array = [...arr];
     let comparisons = 0;
     let swaps = 0;
     const sorted: number[] = [];
-
-    steps.push({ 
-      array: [...array], 
+    steps.push({
+      array: [...array],
       description: "Starting Selection Sort",
       explanation: {
         action: "Initializing Selection Sort - will find minimum in each pass",
@@ -532,10 +506,8 @@ export const SortingVisualizer = () => {
         comparison: "No comparisons made yet"
       }
     });
-
     for (let i = 0; i < array.length - 1; i++) {
       let minIdx = i;
-
       for (let j = i + 1; j < array.length; j++) {
         comparisons++;
         const isNewMin = array[j] < array[minIdx];
@@ -550,12 +522,10 @@ export const SortingVisualizer = () => {
             comparison: `${array[j]} ${isNewMin ? '<' : '≥'} ${array[minIdx]} → ${isNewMin ? 'New minimum found!' : 'Keep current minimum'}`
           }
         });
-
         if (isNewMin) {
           minIdx = j;
         }
       }
-
       if (minIdx !== i) {
         swaps++;
         const swappedVals = [array[i], array[minIdx]];
@@ -574,10 +544,11 @@ export const SortingVisualizer = () => {
       }
       sorted.push(i);
     }
-
-    steps.push({ 
-      array: [...array], 
-      sorted: Array.from({ length: array.length }, (_, i) => i), 
+    steps.push({
+      array: [...array],
+      sorted: Array.from({
+        length: array.length
+      }, (_, i) => i),
       description: "Sorted!",
       explanation: {
         action: "Selection Sort complete! Array is now sorted",
@@ -585,18 +556,20 @@ export const SortingVisualizer = () => {
         comparison: `Total: ${comparisons} comparisons, ${swaps} swaps`
       }
     });
-    setStats({ comparisons, swaps, timeComplexity: "O(n²)" });
+    setStats({
+      comparisons,
+      swaps,
+      timeComplexity: "O(n²)"
+    });
     return steps;
   };
-
   const quickSort = (arr: number[]): Step[] => {
     const steps: Step[] = [];
     const array = [...arr];
     let comparisons = 0;
     let swaps = 0;
-
-    steps.push({ 
-      array: [...array], 
+    steps.push({
+      array: [...array],
       description: "Starting Quick Sort",
       explanation: {
         action: "Initializing Quick Sort - divide and conquer approach",
@@ -604,11 +577,9 @@ export const SortingVisualizer = () => {
         comparison: "No comparisons made yet"
       }
     });
-
     const partition = (low: number, high: number): number => {
       const pivot = array[high];
       let i = low - 1;
-
       steps.push({
         array: [...array],
         pivot: high,
@@ -619,7 +590,6 @@ export const SortingVisualizer = () => {
           comparison: `Will partition around pivot ${pivot}`
         }
       });
-
       for (let j = low; j < high; j++) {
         comparisons++;
         const isLessThanPivot = array[j] < pivot;
@@ -634,7 +604,6 @@ export const SortingVisualizer = () => {
             comparison: `${array[j]} ${isLessThanPivot ? '<' : '≥'} ${pivot} → ${isLessThanPivot ? 'Move to left partition' : 'Stay in right partition'}`
           }
         });
-
         if (isLessThanPivot) {
           i++;
           swaps++;
@@ -653,7 +622,6 @@ export const SortingVisualizer = () => {
           });
         }
       }
-
       swaps++;
       const pivotVal = array[high];
       [array[i + 1], array[high]] = [array[high], array[i + 1]];
@@ -667,10 +635,8 @@ export const SortingVisualizer = () => {
           comparison: `Partition complete: left [${low}..${i}], pivot at ${i + 1}, right [${i + 2}..${high}]`
         }
       });
-
       return i + 1;
     };
-
     const quickSortHelper = (low: number, high: number) => {
       if (low < high) {
         const pi = partition(low, high);
@@ -678,11 +644,12 @@ export const SortingVisualizer = () => {
         quickSortHelper(pi + 1, high);
       }
     };
-
     quickSortHelper(0, array.length - 1);
-    steps.push({ 
-      array: [...array], 
-      sorted: Array.from({ length: array.length }, (_, i) => i), 
+    steps.push({
+      array: [...array],
+      sorted: Array.from({
+        length: array.length
+      }, (_, i) => i),
       description: "Sorted!",
       explanation: {
         action: "Quick Sort complete! Array is now sorted",
@@ -690,18 +657,20 @@ export const SortingVisualizer = () => {
         comparison: `Total: ${comparisons} comparisons, ${swaps} swaps`
       }
     });
-    setStats({ comparisons, swaps, timeComplexity: "O(n log n)" });
+    setStats({
+      comparisons,
+      swaps,
+      timeComplexity: "O(n log n)"
+    });
     return steps;
   };
-
   const mergeSort = (arr: number[]): Step[] => {
     const steps: Step[] = [];
     const array = [...arr];
     let comparisons = 0;
     let swaps = 0;
-
-    steps.push({ 
-      array: [...array], 
+    steps.push({
+      array: [...array],
       description: "Starting Merge Sort",
       explanation: {
         action: "Initializing Merge Sort - divide array then merge sorted halves",
@@ -709,15 +678,17 @@ export const SortingVisualizer = () => {
         comparison: "No comparisons made yet"
       }
     });
-
     const merge = (left: number, mid: number, right: number) => {
       const leftArr = array.slice(left, mid + 1);
       const rightArr = array.slice(mid + 1, right + 1);
-      let i = 0, j = 0, k = left;
-
+      let i = 0,
+        j = 0,
+        k = left;
       steps.push({
         array: [...array],
-        comparing: Array.from({ length: right - left + 1 }, (_, idx) => left + idx),
+        comparing: Array.from({
+          length: right - left + 1
+        }, (_, idx) => left + idx),
         description: `Merging subarrays`,
         explanation: {
           action: `Merging subarrays [${left}..${mid}] and [${mid + 1}..${right}]`,
@@ -725,7 +696,6 @@ export const SortingVisualizer = () => {
           comparison: `Comparing elements from left [${leftArr.join(', ')}] and right [${rightArr.join(', ')}]`
         }
       });
-
       while (i < leftArr.length && j < rightArr.length) {
         comparisons++;
         const pickedLeft = leftArr[i] <= rightArr[j];
@@ -750,12 +720,11 @@ export const SortingVisualizer = () => {
         });
         k++;
       }
-
       while (i < leftArr.length) {
         array[k] = leftArr[i];
-        steps.push({ 
-          array: [...array], 
-          swapping: [k], 
+        steps.push({
+          array: [...array],
+          swapping: [k],
           description: `Copying remaining elements`,
           explanation: {
             action: `Copying remaining element ${leftArr[i]} from left subarray`,
@@ -766,12 +735,11 @@ export const SortingVisualizer = () => {
         i++;
         k++;
       }
-
       while (j < rightArr.length) {
         array[k] = rightArr[j];
-        steps.push({ 
-          array: [...array], 
-          swapping: [k], 
+        steps.push({
+          array: [...array],
+          swapping: [k],
           description: `Copying remaining elements`,
           explanation: {
             action: `Copying remaining element ${rightArr[j]} from right subarray`,
@@ -783,7 +751,6 @@ export const SortingVisualizer = () => {
         k++;
       }
     };
-
     const mergeSortHelper = (left: number, right: number) => {
       if (left < right) {
         const mid = Math.floor((left + right) / 2);
@@ -792,11 +759,12 @@ export const SortingVisualizer = () => {
         merge(left, mid, right);
       }
     };
-
     mergeSortHelper(0, array.length - 1);
-    steps.push({ 
-      array: [...array], 
-      sorted: Array.from({ length: array.length }, (_, i) => i), 
+    steps.push({
+      array: [...array],
+      sorted: Array.from({
+        length: array.length
+      }, (_, i) => i),
       description: "Sorted!",
       explanation: {
         action: "Merge Sort complete! Array is now sorted",
@@ -804,16 +772,18 @@ export const SortingVisualizer = () => {
         comparison: `Total: ${comparisons} comparisons, ${swaps} merges`
       }
     });
-    setStats({ comparisons, swaps, timeComplexity: "O(n log n)" });
+    setStats({
+      comparisons,
+      swaps,
+      timeComplexity: "O(n log n)"
+    });
     return steps;
   };
-
   const startVisualization = () => {
     let sortSteps: Step[] = [];
     setIsComplete(false);
     setStartTime(Date.now());
     setElapsedTime(0);
-    
     switch (algorithm) {
       case "bubble":
         sortSteps = bubbleSort(array);
@@ -831,12 +801,10 @@ export const SortingVisualizer = () => {
         sortSteps = mergeSort(array);
         break;
     }
-    
     setSteps(sortSteps);
     setCurrentStep(0);
     setIsPlaying(true);
   };
-
   const handleQuickStartExample = (values: number[], algorithmType: string) => {
     setArray(values);
     setArraySize(values.length);
@@ -866,21 +834,13 @@ export const SortingVisualizer = () => {
     if (isComplete && steps.length > 0) {
       playCompleteSound();
       // Record performance run
-      addPerformanceRun(
-        algorithm,
-        array.length,
-        stats.comparisons,
-        stats.swaps,
-        elapsedTime,
-        array
-      );
+      addPerformanceRun(algorithm, array.length, stats.comparisons, stats.swaps, elapsedTime, array);
     }
   }, [isComplete, steps.length, playCompleteSound, addPerformanceRun, algorithm, array, stats, elapsedTime]);
-
   useEffect(() => {
     if (isPlaying && currentStep < steps.length - 1) {
       const timer = setTimeout(() => {
-        setCurrentStep((prev) => prev + 1);
+        setCurrentStep(prev => prev + 1);
         if (startTime > 0) {
           setElapsedTime((Date.now() - startTime) / 1000);
         }
@@ -903,7 +863,6 @@ export const SortingVisualizer = () => {
       toast.info(`Jumped to: ${nextBookmark.label}`);
     }
   }, [currentStep, getNextBookmark]);
-
   const handleJumpToPreviousBookmark = useCallback(() => {
     const prevBookmark = getPreviousBookmark(currentStep);
     if (prevBookmark) {
@@ -911,13 +870,13 @@ export const SortingVisualizer = () => {
       toast.info(`Jumped to: ${prevBookmark.label}`);
     }
   }, [currentStep, getPreviousBookmark]);
-
-  const currentStepData = steps[currentStep] || { array, description: "Click Visualize to start" };
+  const currentStepData = steps[currentStep] || {
+    array,
+    description: "Click Visualize to start"
+  };
   const maxValue = Math.max(...array);
-  const progress = steps.length > 0 ? ((currentStep + 1) / steps.length) * 100 : 0;
-
-  return (
-    <div className="space-y-6 animate-fade-in">
+  const progress = steps.length > 0 ? (currentStep + 1) / steps.length * 100 : 0;
+  return <div className="space-y-6 animate-fade-in">
       {/* Accessibility Controls */}
       <AccessibilityControls />
 
@@ -929,31 +888,9 @@ export const SortingVisualizer = () => {
 
       {/* Audio, Bookmarks, and Performance Panels */}
       <div className="grid md:grid-cols-3 gap-4">
-        <AudioFeedbackPanel
-          settings={audioSettings}
-          onUpdateSettings={updateAudioSettings}
-          onReset={resetAudioSettings}
-          onTest={testAudioSound}
-        />
-        <StepBookmarksPanel
-          bookmarks={bookmarks}
-          currentStep={currentStep}
-          totalSteps={steps.length}
-          hasBookmarkAtStep={hasBookmarkAtStep}
-          onAddBookmark={addBookmark}
-          onRemoveBookmark={removeBookmark}
-          onToggleBookmark={toggleBookmark}
-          onJumpToStep={setCurrentStep}
-          onJumpToNextBookmark={handleJumpToNextBookmark}
-          onJumpToPreviousBookmark={handleJumpToPreviousBookmark}
-          onClearBookmarks={clearBookmarks}
-        />
-        <PerformanceHistoryPanel
-          history={performanceHistory}
-          onClearHistory={clearPerformanceHistory}
-          getComparisonChartData={getComparisonChartData}
-          getAlgorithmComparisonData={getAlgorithmComparisonData}
-        />
+        <AudioFeedbackPanel settings={audioSettings} onUpdateSettings={updateAudioSettings} onReset={resetAudioSettings} onTest={testAudioSound} />
+        <StepBookmarksPanel bookmarks={bookmarks} currentStep={currentStep} totalSteps={steps.length} hasBookmarkAtStep={hasBookmarkAtStep} onAddBookmark={addBookmark} onRemoveBookmark={removeBookmark} onToggleBookmark={toggleBookmark} onJumpToStep={setCurrentStep} onJumpToNextBookmark={handleJumpToNextBookmark} onJumpToPreviousBookmark={handleJumpToPreviousBookmark} onClearBookmarks={clearBookmarks} />
+        <PerformanceHistoryPanel history={performanceHistory} onClearHistory={clearPerformanceHistory} getComparisonChartData={getComparisonChartData} getAlgorithmComparisonData={getAlgorithmComparisonData} />
       </div>
 
       {/* Code Editor */}
@@ -967,58 +904,37 @@ export const SortingVisualizer = () => {
             Controls
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 border-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Algorithm</label>
-              <Select value={algorithm} onValueChange={(value) => setAlgorithm(value as Algorithm)}>
+              <Select value={algorithm} onValueChange={value => setAlgorithm(value as Algorithm)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {Object.entries(algorithms).map(([key, name]) => (
-                    <SelectItem key={key} value={key}>
+                  {Object.entries(algorithms).map(([key, name]) => <SelectItem key={key} value={key}>
                       {name}
-                    </SelectItem>
-                  ))}
+                    </SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
               <label className="text-sm font-medium">Array Size: {arraySize}</label>
-              <Slider
-                value={[arraySize]}
-                onValueChange={([value]) => setArraySize(value)}
-                min={5}
-                max={50}
-                step={5}
-                disabled={isPlaying || steps.length > 0}
-              />
+              <Slider value={[arraySize]} onValueChange={([value]) => setArraySize(value)} min={5} max={50} step={5} disabled={isPlaying || steps.length > 0} />
             </div>
 
             <div className="space-y-2">
               <label className="text-sm font-medium">Speed: {speed}ms</label>
-              <Slider
-                value={[speed]}
-                onValueChange={([value]) => setSpeed(value)}
-                min={50}
-                max={1000}
-                step={50}
-              />
+              <Slider value={[speed]} onValueChange={([value]) => setSpeed(value)} min={50} max={1000} step={50} />
             </div>
           </div>
 
           <div className="space-y-2 border-t border-border pt-4">
             <label className="text-sm font-medium">Custom Values (comma-separated):</label>
             <div className="flex gap-2">
-              <Input
-                placeholder="e.g., 45,23,67,12,89,34"
-                value={customInput}
-                onChange={(e) => setCustomInput(e.target.value)}
-                className="flex-1"
-                disabled={isPlaying}
-              />
+              <Input placeholder="e.g., 45,23,67,12,89,34" value={customInput} onChange={e => setCustomInput(e.target.value)} className="flex-1" disabled={isPlaying} />
               <Button onClick={setCustomArray} variant="outline" size="sm" disabled={isPlaying}>
                 Set Array
               </Button>
@@ -1029,44 +945,20 @@ export const SortingVisualizer = () => {
           </div>
 
           <div className="flex gap-2 flex-wrap items-center">
-            <Button
-              onClick={startVisualization} 
-              disabled={isPlaying || steps.length > 0} 
-              className="bg-gradient-primary hover:shadow-glow-primary transition-all hover:scale-105"
-            >
+            <Button onClick={startVisualization} disabled={isPlaying || steps.length > 0} className="bg-gradient-primary hover:shadow-glow-primary transition-all hover:scale-105">
               <Play className="mr-2 h-4 w-4" />
               Visualize
             </Button>
-            <Button 
-              onClick={() => setIsPlaying(!isPlaying)} 
-              disabled={steps.length === 0} 
-              variant="outline"
-              className="hover:scale-105 transition-transform"
-            >
+            <Button onClick={() => setIsPlaying(!isPlaying)} disabled={steps.length === 0} variant="outline" className="hover:scale-105 transition-transform">
               {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
             </Button>
-            <Button
-              onClick={() => setCurrentStep(Math.max(0, currentStep - 1))}
-              disabled={currentStep === 0 || isPlaying}
-              variant="outline"
-              className="hover:scale-105 transition-transform"
-            >
+            <Button onClick={() => setCurrentStep(Math.max(0, currentStep - 1))} disabled={currentStep === 0 || isPlaying} variant="outline" className="hover:scale-105 transition-transform">
               <SkipBack className="h-4 w-4" />
             </Button>
-            <Button
-              onClick={() => setCurrentStep(Math.min(steps.length - 1, currentStep + 1))}
-              disabled={currentStep >= steps.length - 1 || isPlaying}
-              variant="outline"
-              className="hover:scale-105 transition-transform"
-            >
+            <Button onClick={() => setCurrentStep(Math.min(steps.length - 1, currentStep + 1))} disabled={currentStep >= steps.length - 1 || isPlaying} variant="outline" className="hover:scale-105 transition-transform">
               <SkipForward className="h-4 w-4" />
             </Button>
-            <Button 
-              onClick={generateRandomArray} 
-              disabled={isPlaying} 
-              variant="outline"
-              className="hover:scale-105 transition-transform"
-            >
+            <Button onClick={generateRandomArray} disabled={isPlaying} variant="outline" className="hover:scale-105 transition-transform">
               <RotateCcw className="h-4 w-4" />
             </Button>
             
@@ -1074,69 +966,45 @@ export const SortingVisualizer = () => {
             <KeyboardShortcutsHelp triggerClassName="gap-1 md:gap-2 text-xs md:text-sm" />
             
             {/* Share Button */}
-            <Button
-              onClick={handleShare}
-              variant="outline"
-              size="sm"
-              className="gap-1 md:gap-2 text-xs md:text-sm hover:scale-105 transition-transform"
-              disabled={array.length === 0}
-            >
-              {linkCopied ? (
-                <>
+            <Button onClick={handleShare} variant="outline" size="sm" className="gap-1 md:gap-2 text-xs md:text-sm hover:scale-105 transition-transform" disabled={array.length === 0}>
+              {linkCopied ? <>
                   <Check className="h-3 w-3 md:h-4 md:w-4 text-green-500" />
                   <span className="hidden sm:inline">Copied!</span>
-                </>
-              ) : (
-                <>
+                </> : <>
                   <Link2 className="h-3 w-3 md:h-4 md:w-4" />
                   <span className="hidden sm:inline">Share</span>
-                </>
-              )}
+                </>}
             </Button>
 
             <div className="flex items-center gap-4 ml-auto border-l border-border pl-4 flex-wrap">
               <div className="flex items-center gap-2">
-                <Switch
-                  id="step-explanation"
-                  checked={showStepExplanation}
-                  onCheckedChange={setShowStepExplanation}
-                />
+                <Switch id="step-explanation" checked={showStepExplanation} onCheckedChange={setShowStepExplanation} />
                 <Label htmlFor="step-explanation" className="text-sm font-medium flex items-center gap-1.5 cursor-pointer">
                   <FileText className="h-4 w-4" />
                   Step Explanation
                 </Label>
               </div>
               <div className="flex items-center gap-2">
-                <Switch
-                  id="voice-narration"
-                  checked={voiceNarrationEnabled}
-                  onCheckedChange={handleVoiceNarrationToggle}
-                />
+                <Switch id="voice-narration" checked={voiceNarrationEnabled} onCheckedChange={handleVoiceNarrationToggle} />
                 <Label htmlFor="voice-narration" className="text-sm font-medium flex items-center gap-1.5 cursor-pointer">
                   {voiceNarrationEnabled ? <Volume2 className="h-4 w-4 text-primary" /> : <VolumeX className="h-4 w-4" />}
                   Voice
                 </Label>
               </div>
-              {voiceNarrationEnabled && (
-                <div className="flex items-center gap-3 flex-wrap">
+              {voiceNarrationEnabled && <div className="flex items-center gap-3 flex-wrap">
                   <div className="flex items-center gap-2">
                     <Label htmlFor="voice-select" className="text-xs text-muted-foreground whitespace-nowrap">
                       Voice:
                     </Label>
-                    <Select
-                      value={selectedVoiceIndex.toString()}
-                      onValueChange={(value) => setSelectedVoiceIndex(parseInt(value))}
-                    >
+                    <Select value={selectedVoiceIndex.toString()} onValueChange={value => setSelectedVoiceIndex(parseInt(value))}>
                       <SelectTrigger className="w-[140px] h-8 text-xs">
                         <SelectValue placeholder="Auto" />
                       </SelectTrigger>
                       <SelectContent className="max-h-[200px]">
                         <SelectItem value="-1">Auto (English)</SelectItem>
-                        {availableVoices.map((voice, index) => (
-                          <SelectItem key={index} value={index.toString()}>
+                        {availableVoices.map((voice, index) => <SelectItem key={index} value={index.toString()}>
                             {voice.name.length > 20 ? voice.name.slice(0, 20) + '...' : voice.name}
-                          </SelectItem>
-                        ))}
+                          </SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
@@ -1144,64 +1012,29 @@ export const SortingVisualizer = () => {
                     <Label htmlFor="voice-speed" className="text-xs text-muted-foreground whitespace-nowrap">
                       Speed: {voiceSpeed.toFixed(1)}x
                     </Label>
-                    <Slider
-                      id="voice-speed"
-                      value={[voiceSpeed]}
-                      onValueChange={([value]) => setVoiceSpeed(value)}
-                      min={0.5}
-                      max={2}
-                      step={0.1}
-                      className="w-14"
-                    />
+                    <Slider id="voice-speed" value={[voiceSpeed]} onValueChange={([value]) => setVoiceSpeed(value)} min={0.5} max={2} step={0.1} className="w-14" />
                   </div>
                   <div className="flex items-center gap-2 min-w-[110px]">
                     <Label htmlFor="voice-pitch" className="text-xs text-muted-foreground whitespace-nowrap">
                       Pitch: {voicePitch.toFixed(1)}
                     </Label>
-                    <Slider
-                      id="voice-pitch"
-                      value={[voicePitch]}
-                      onValueChange={([value]) => setVoicePitch(value)}
-                      min={0.5}
-                      max={2}
-                      step={0.1}
-                      className="w-14"
-                    />
+                    <Slider id="voice-pitch" value={[voicePitch]} onValueChange={([value]) => setVoicePitch(value)} min={0.5} max={2} step={0.1} className="w-14" />
                   </div>
                   <div className="flex items-center gap-2 min-w-[110px]">
                     <Label htmlFor="voice-volume" className="text-xs text-muted-foreground whitespace-nowrap">
                       Vol: {Math.round(voiceVolume * 100)}%
                     </Label>
-                    <Slider
-                      id="voice-volume"
-                      value={[voiceVolume]}
-                      onValueChange={([value]) => setVoiceVolume(value)}
-                      min={0}
-                      max={1}
-                      step={0.1}
-                      className="w-14"
-                    />
+                    <Slider id="voice-volume" value={[voiceVolume]} onValueChange={([value]) => setVoiceVolume(value)} min={0} max={1} step={0.1} className="w-14" />
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={testVoice}
-                    className="h-8 text-xs gap-1"
-                  >
+                  <Button variant="outline" size="sm" onClick={testVoice} className="h-8 text-xs gap-1">
                     <Volume1 className="h-3 w-3" />
                     Test
                   </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={resetVoiceSettings}
-                    className="h-8 text-xs gap-1 text-muted-foreground hover:text-foreground"
-                  >
+                  <Button variant="ghost" size="sm" onClick={resetVoiceSettings} className="h-8 text-xs gap-1 text-muted-foreground hover:text-foreground">
                     <RotateCw className="h-3 w-3" />
                     Reset
                   </Button>
-                </div>
-              )}
+                </div>}
             </div>
           </div>
         </CardContent>
@@ -1220,78 +1053,46 @@ export const SortingVisualizer = () => {
                 Step {currentStep + 1} of {steps.length || 1}
               </span>
             </CardTitle>
-            {steps.length > 0 && (
-              <Progress value={progress} className="h-2" />
-            )}
+            {steps.length > 0 && <Progress value={progress} className="h-2" />}
           </div>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             <div className="min-h-[400px] bg-gradient-to-b from-muted/50 to-muted rounded-lg p-6 flex items-end justify-center gap-1 relative overflow-hidden">
-              {isComplete && (
-                <div className="absolute inset-0 bg-gradient-to-r from-green-500/10 via-primary/10 to-green-500/10 animate-pulse" />
-              )}
+              {isComplete && <div className="absolute inset-0 bg-gradient-to-r from-green-500/10 via-primary/10 to-green-500/10 animate-pulse" />}
               {currentStepData.array.map((value, idx) => {
-                const isComparing = currentStepData.comparing?.includes(idx);
-                const isSwapping = currentStepData.swapping?.includes(idx);
-                const isSorted = currentStepData.sorted?.includes(idx);
-                const isPivot = currentStepData.pivot === idx;
-
-                return (
-                  <div
-                    key={idx}
-                    className={`flex flex-col items-center gap-1 relative z-10 ${
-                      isSwapping ? 'animate-bounce' : 'animate-fade-in'
-                    }`}
-                    style={{ flex: 1, maxWidth: "60px" }}
-                  >
-                    <span className={`text-xs font-mono font-bold transition-all duration-300 ${
-                      isComparing || isSwapping ? 'text-primary scale-125' : ''
-                    }`}>
+              const isComparing = currentStepData.comparing?.includes(idx);
+              const isSwapping = currentStepData.swapping?.includes(idx);
+              const isSorted = currentStepData.sorted?.includes(idx);
+              const isPivot = currentStepData.pivot === idx;
+              return <div key={idx} className={`flex flex-col items-center gap-1 relative z-10 ${isSwapping ? 'animate-bounce' : 'animate-fade-in'}`} style={{
+                flex: 1,
+                maxWidth: "60px"
+              }}>
+                    <span className={`text-xs font-mono font-bold transition-all duration-300 ${isComparing || isSwapping ? 'text-primary scale-125' : ''}`}>
                       {value}
                     </span>
-                    <div
-                      className={`w-full rounded-t transition-all duration-500 relative ${
-                        isPivot
-                          ? "bg-purple-500 shadow-[0_0_20px_rgba(168,85,247,0.6)]"
-                          : isSwapping
-                          ? "bg-red-500 shadow-[0_0_20px_rgba(239,68,68,0.6)] scale-110"
-                          : isComparing
-                          ? "bg-yellow-500 shadow-[0_0_20px_rgba(234,179,8,0.6)]"
-                          : isSorted
-                          ? "bg-green-500 shadow-[0_0_15px_rgba(34,197,94,0.5)]"
-                          : "bg-gradient-to-t from-primary to-primary/60"
-                      }`}
-                      style={{
-                        height: `${(value / maxValue) * 300}px`,
-                        minHeight: "20px",
-                        transform: isSwapping ? 'scale(1.1)' : 'scale(1)',
-                      }}
-                    >
-                      {(isSwapping || isComparing) && (
-                        <div className="absolute inset-0 bg-white/20 animate-pulse rounded-t" />
-                      )}
+                    <div className={`w-full rounded-t transition-all duration-500 relative ${isPivot ? "bg-purple-500 shadow-[0_0_20px_rgba(168,85,247,0.6)]" : isSwapping ? "bg-red-500 shadow-[0_0_20px_rgba(239,68,68,0.6)] scale-110" : isComparing ? "bg-yellow-500 shadow-[0_0_20px_rgba(234,179,8,0.6)]" : isSorted ? "bg-green-500 shadow-[0_0_15px_rgba(34,197,94,0.5)]" : "bg-gradient-to-t from-primary to-primary/60"}`} style={{
+                  height: `${value / maxValue * 300}px`,
+                  minHeight: "20px",
+                  transform: isSwapping ? 'scale(1.1)' : 'scale(1)'
+                }}>
+                      {(isSwapping || isComparing) && <div className="absolute inset-0 bg-white/20 animate-pulse rounded-t" />}
                     </div>
-                  </div>
-                );
-              })}
+                  </div>;
+            })}
             </div>
             <div className="text-center space-y-2">
-              <p className={`text-lg font-semibold transition-all duration-300 ${
-                isComplete ? 'text-green-500 animate-pulse' : ''
-              }`}>
+              <p className={`text-lg font-semibold transition-all duration-300 ${isComplete ? 'text-green-500 animate-pulse' : ''}`}>
                 {currentStepData.description}
               </p>
-              {isComplete && (
-                <p className="text-sm text-green-500 animate-fade-in">
+              {isComplete && <p className="text-sm text-green-500 animate-fade-in">
                   ✨ Array sorted successfully! ✨
-                </p>
-              )}
+                </p>}
             </div>
 
             {/* Step Explanation Panel */}
-            {showStepExplanation && currentStepData.explanation && (
-              <div className="bg-muted/50 border border-border rounded-lg p-4 space-y-3 animate-fade-in">
+            {showStepExplanation && currentStepData.explanation && <div className="bg-muted/50 border border-border rounded-lg p-4 space-y-3 animate-fade-in">
                 <div className="flex items-center gap-2 text-sm font-semibold text-primary">
                   <FileText className="h-4 w-4" />
                   Step Explanation
@@ -1325,8 +1126,7 @@ export const SortingVisualizer = () => {
                     </div>
                   </div>
                 </div>
-              </div>
-            )}
+              </div>}
 
             {/* Legend */}
             <div className="flex flex-wrap gap-4 justify-center text-sm">
@@ -1357,28 +1157,11 @@ export const SortingVisualizer = () => {
 
       {/* Advanced Analysis Panels */}
       <div className="grid md:grid-cols-2 gap-4">
-        <MetricsDashboard
-          comparisons={stats.comparisons}
-          swaps={stats.swaps}
-          timeComplexity={stats.timeComplexity}
-          currentStep={currentStep}
-          totalSteps={steps.length}
-          elapsedTime={elapsedTime}
-        />
-        <ComplexityHeatmap 
-          comparisons={stats.comparisons} 
-          swaps={stats.swaps} 
-          isActive={steps.length > 0}
-        />
+        <MetricsDashboard comparisons={stats.comparisons} swaps={stats.swaps} timeComplexity={stats.timeComplexity} currentStep={currentStep} totalSteps={steps.length} elapsedTime={elapsedTime} />
+        <ComplexityHeatmap comparisons={stats.comparisons} swaps={stats.swaps} isActive={steps.length > 0} />
       </div>
 
-      <MemoryVisualizer 
-        arraySize={array.length}
-        currentStep={currentStep}
-        totalSteps={steps.length}
-        isActive={steps.length > 0}
-        currentArray={steps[currentStep]?.array || array}
-      />
+      <MemoryVisualizer arraySize={array.length} currentStep={currentStep} totalSteps={steps.length} isActive={steps.length > 0} currentArray={steps[currentStep]?.array || array} />
 
       {/* Original Stats Row (Deprecated - kept for reference) */}
       <div className="grid md:grid-cols-3 gap-4 hidden">
@@ -1391,9 +1174,7 @@ export const SortingVisualizer = () => {
               {stats.timeComplexity}
             </p>
             <p className="text-xs text-muted-foreground mt-2">
-              {algorithm === "bubble" || algorithm === "insertion" || algorithm === "selection" 
-                ? "Quadratic time" 
-                : "Logarithmic time"}
+              {algorithm === "bubble" || algorithm === "insertion" || algorithm === "selection" ? "Quadratic time" : "Logarithmic time"}
             </p>
           </CardContent>
         </Card>
@@ -1424,6 +1205,5 @@ export const SortingVisualizer = () => {
           </CardContent>
         </Card>
       </div>
-    </div>
-  );
+    </div>;
 };

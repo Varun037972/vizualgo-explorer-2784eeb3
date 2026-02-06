@@ -62,18 +62,18 @@ const Visualizer = () => {
                   </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <Button variant="outline" size="sm" onClick={() => setShowOnboarding(true)} className="gap-1 md:gap-2 text-xs md:text-sm border-4">
+                  <Button variant="outline" size="sm" onClick={() => setShowOnboarding(true)} className="gap-1 md:gap-2 text-xs md:text-sm border-4 border-solid rounded-md">
                     <HelpCircle className="h-3 w-3 md:h-4 md:w-4" />
                     <span className="hidden sm:inline">Tutorial</span>
                     <span className="sm:hidden">Help</span>
                   </Button>
                   <KeyboardShortcutsHelp triggerClassName="gap-1 md:gap-2 text-xs md:text-sm" />
-                  <Button variant="outline" size="sm" onClick={handleExportImage} disabled={isExporting} className="gap-1 md:gap-2 text-xs md:text-sm">
+                  <Button variant="outline" size="sm" onClick={handleExportImage} disabled={isExporting} className="gap-1 md:gap-2 text-xs md:text-sm border-4 border-solid">
                     <Share2 className="h-3 w-3 md:h-4 md:w-4" />
                     <span className="hidden sm:inline">Export Image</span>
                     <span className="sm:hidden">Image</span>
                   </Button>
-                  <Button variant="outline" size="sm" onClick={handleExportGIF} disabled={isExporting} className="gap-1 md:gap-2 text-xs md:text-sm">
+                  <Button variant="outline" size="sm" onClick={handleExportGIF} disabled={isExporting} className="gap-1 md:gap-2 text-xs md:text-sm border-4 border-solid">
                     <Share2 className="h-3 w-3 md:h-4 md:w-4" />
                     <span className="hidden sm:inline">Export GIF</span>
                     <span className="sm:hidden">GIF</span>
