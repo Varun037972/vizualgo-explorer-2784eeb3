@@ -8,6 +8,7 @@ import TargetUsers from "@/components/TargetUsers";
 import FinalCTA from "@/components/FinalCTA";
 import Footer from "@/components/Footer";
 import AnimatedBackground from "@/components/AnimatedBackground";
+import ParallaxElements from "@/components/ParallaxElements";
 import { Navigation } from "@/components/Navigation";
 import { OnboardingTutorial } from "@/components/OnboardingTutorial";
 
@@ -24,6 +25,7 @@ const Index = () => {
   return (
     <main className="min-h-screen bg-background relative">
       <AnimatedBackground />
+      <ParallaxElements />
       <Navigation />
       <div className="relative z-10">
         <Hero />
