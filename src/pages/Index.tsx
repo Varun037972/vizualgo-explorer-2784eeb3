@@ -9,6 +9,7 @@ import FinalCTA from "@/components/FinalCTA";
 import Footer from "@/components/Footer";
 import AnimatedBackground from "@/components/AnimatedBackground";
 import ParallaxElements from "@/components/ParallaxElements";
+import ScrollProgressBar from "@/components/ScrollProgressBar";
 import { Navigation } from "@/components/Navigation";
 import { OnboardingTutorial } from "@/components/OnboardingTutorial";
 
@@ -24,6 +25,7 @@ const Index = () => {
 
   return (
     <main className="min-h-screen bg-background relative">
+      <ScrollProgressBar />
       <AnimatedBackground />
       <ParallaxElements />
       <Navigation />
