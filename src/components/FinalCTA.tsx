@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Sparkles } from "lucide-react";
+import SectionReveal from "@/components/SectionReveal";
 
 const FinalCTA = () => {
   return (
@@ -13,70 +14,82 @@ const FinalCTA = () => {
       <div className="container mx-auto px-4 relative z-10">
         <div className="max-w-4xl mx-auto text-center space-y-8">
           {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-primary/10 border border-primary/20 backdrop-blur-sm">
-            <Sparkles className="h-4 w-4 text-primary animate-pulse" />
-            <span className="text-sm font-semibold text-primary">Start Your Journey Today</span>
-          </div>
+          <SectionReveal delay={0}>
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-primary/10 border border-primary/20 backdrop-blur-sm">
+              <Sparkles className="h-4 w-4 text-primary animate-pulse" />
+              <span className="text-sm font-semibold text-primary">Start Your Journey Today</span>
+            </div>
+          </SectionReveal>
 
           {/* Main Headline */}
-          <h2 className="text-4xl md:text-6xl font-bold">
-            Ready to Master
-            <br />
-            <span className="bg-gradient-primary bg-clip-text text-transparent bg-[length:200%_auto] animate-gradient-shift">
-              Algorithms Visually?
-            </span>
-          </h2>
+          <SectionReveal delay={0.1}>
+            <h2 className="text-4xl md:text-6xl font-bold">
+              Ready to Master
+              <br />
+              <span className="bg-gradient-primary bg-clip-text text-transparent bg-[length:200%_auto] animate-gradient-shift">
+                Algorithms Visually?
+              </span>
+            </h2>
+          </SectionReveal>
 
           {/* Supporting Text */}
-          <p className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto">
-            Start exploring, debugging, and understanding code execution today.
-            Join thousands of learners and developers worldwide.
-          </p>
+          <SectionReveal delay={0.2}>
+            <p className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto">
+              Start exploring, debugging, and understanding code execution today.
+              Join thousands of learners and developers worldwide.
+            </p>
+          </SectionReveal>
 
           {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-6">
-            <Link to="/visualizer">
-              <Button variant="glow" size="lg" className="px-10 py-6 text-lg group">
-                Get Started for Free
-                <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
-              </Button>
-            </Link>
-            <Link to="/docs">
-              <Button size="lg" variant="outline" className="px-10 py-6 text-lg backdrop-blur-sm">
-                View Documentation
-              </Button>
-            </Link>
-          </div>
+          <SectionReveal delay={0.3}>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-6">
+              <Link to="/visualizer">
+                <Button variant="glow" size="lg" className="px-10 py-6 text-lg group">
+                  Get Started for Free
+                  <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                </Button>
+              </Link>
+              <Link to="/docs">
+                <Button size="lg" variant="outline" className="px-10 py-6 text-lg backdrop-blur-sm">
+                  View Documentation
+                </Button>
+              </Link>
+            </div>
+          </SectionReveal>
 
           {/* Feature Highlights */}
-          <div className="flex flex-wrap justify-center gap-6 pt-8 text-sm text-muted-foreground">
-            {[
-              "✓ No credit card required",
-              "✓ Free for students",
-              "✓ Instant setup",
-              "✓ All languages included",
-            ].map((feature, index) => (
-              <div key={index} className="flex items-center gap-2">
-                <span>{feature}</span>
-              </div>
-            ))}
-          </div>
+          <SectionReveal delay={0.4}>
+            <div className="flex flex-wrap justify-center gap-6 pt-8 text-sm text-muted-foreground">
+              {[
+                "✓ No credit card required",
+                "✓ Free for students",
+                "✓ Instant setup",
+                "✓ All languages included",
+              ].map((feature, index) => (
+                <div key={index} className="flex items-center gap-2">
+                  <span>{feature}</span>
+                </div>
+              ))}
+            </div>
+          </SectionReveal>
 
           {/* Bottom Stats */}
-          <div className="grid grid-cols-3 gap-8 max-w-2xl mx-auto pt-12 border-t border-border/50">
-            <div className="space-y-2">
-              <div className="text-3xl font-bold text-primary">10K+</div>
-              <div className="text-sm text-muted-foreground">Active Users</div>
+          <SectionReveal delay={0.5} direction="up">
+            <div className="grid grid-cols-3 gap-8 max-w-2xl mx-auto pt-12 border-t border-border/50">
+              <div className="space-y-2">
+                <div className="text-3xl font-bold text-primary">10K+</div>
+                <div className="text-sm text-muted-foreground">Active Users</div>
+              </div>
+              <div className="space-y-2">
+                <div className="text-3xl font-bold text-secondary">99.9%</div>
+                <div className="text-sm text-muted-foreground">Uptime</div>
+              </div>
+              <div className="space-y-2">
+                <div className="text-3xl font-bold text-accent">24/7</div>
+                <div className="text-sm text-muted-foreground">Available</div>
+              </div>
             </div>
-            <div className="space-y-2">
-              <div className="text-3xl font-bold text-secondary">99.9%</div>
-              <div className="text-sm text-muted-foreground">Uptime</div>
-            </div>
-            <div className="space-y-2">
-              <div className="text-3xl font-bold text-accent">24/7</div>
-              <div className="text-sm text-muted-foreground">Available</div>
-            </div>
-          </div>
+          </SectionReveal>
         </div>
       </div>
     </section>
