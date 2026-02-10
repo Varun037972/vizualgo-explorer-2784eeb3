@@ -10,6 +10,7 @@ import Footer from "@/components/Footer";
 import AnimatedBackground from "@/components/AnimatedBackground";
 import ParallaxElements from "@/components/ParallaxElements";
 import ScrollProgressBar from "@/components/ScrollProgressBar";
+import ScrollToTopButton from "@/components/ScrollToTopButton";
 import { Navigation } from "@/components/Navigation";
 import { OnboardingTutorial } from "@/components/OnboardingTutorial";
 
@@ -39,6 +40,7 @@ const Index = () => {
         <FinalCTA />
         <Footer />
       </div>
+      <ScrollToTopButton />
       <OnboardingTutorial open={showOnboarding} onClose={() => setShowOnboarding(false)} />
     </main>
   );
