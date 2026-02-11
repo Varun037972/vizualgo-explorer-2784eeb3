@@ -10,6 +10,9 @@ const Visualizer = lazy(() => import("@/pages/Visualizer"));
 const Demo = lazy(() => import("@/pages/Demo"));
 const Docs = lazy(() => import("@/pages/Docs"));
 const Auth = lazy(() => import("@/pages/Auth"));
+const Learn = lazy(() => import("@/pages/Learn"));
+const LearnModule = lazy(() => import("@/pages/LearnModule"));
+const Simulations = lazy(() => import("@/pages/Simulations"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 
 const AnimatedRoutes = () => {
@@ -59,7 +62,39 @@ const AnimatedRoutes = () => {
               </PageTransition>
             }
           />
+          <Route
+            path="/learn"
+            element={
+              <PageTransition>
+                <Learn />
+              </PageTransition>
+            }
+          />
+          <Route
+            path="/learn/:moduleId"
+            element={
+              <PageTransition>
+                <LearnModule />
+              </PageTransition>
+            }
+          />
+          <Route
+            path="/simulations"
+            element={
+              <PageTransition>
+                <Simulations />
+              </PageTransition>
+            }
+          />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          <Route
+            path="*"
+            element={
+              <PageTransition>
+                <NotFound />
+              </PageTransition>
+            }
+          />
           <Route
             path="*"
             element={

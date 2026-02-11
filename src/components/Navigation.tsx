@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Code2, Home, BookOpen, PlayCircle, LogIn, Menu, X } from "lucide-react";
+import { Code2, Home, BookOpen, PlayCircle, LogIn, Menu, X, GraduationCap, Globe } from "lucide-react";
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -135,6 +135,24 @@ export const Navigation = () => {
             </NavigationMenuItem>
 
             <NavigationMenuItem>
+              <Link to="/learn">
+                <NavigationMenuLink className="flex items-center gap-2 px-4 py-2.5 rounded-lg hover:bg-primary/10 hover:text-primary transition-all duration-300 font-medium">
+                  <GraduationCap className="h-4 w-4" />
+                  Learn
+                </NavigationMenuLink>
+              </Link>
+            </NavigationMenuItem>
+
+            <NavigationMenuItem>
+              <Link to="/simulations">
+                <NavigationMenuLink className="flex items-center gap-2 px-4 py-2.5 rounded-lg hover:bg-primary/10 hover:text-primary transition-all duration-300 font-medium">
+                  <Globe className="h-4 w-4" />
+                  Simulations
+                </NavigationMenuLink>
+              </Link>
+            </NavigationMenuItem>
+
+            <NavigationMenuItem>
               <Link to="/docs">
                 <NavigationMenuLink className="flex items-center gap-2 px-4 py-2.5 rounded-lg hover:bg-primary/10 hover:text-primary transition-all duration-300 font-medium">
                   <BookOpen className="h-4 w-4" />
@@ -234,6 +252,24 @@ export const Navigation = () => {
               >
                 <BookOpen className="h-5 w-5 text-primary" />
                 <span className="font-medium">Docs</span>
+              </Link>
+
+              <Link 
+                to="/learn" 
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-primary/10 transition-all"
+              >
+                <GraduationCap className="h-5 w-5 text-primary" />
+                <span className="font-medium">Learn</span>
+              </Link>
+
+              <Link 
+                to="/simulations" 
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-primary/10 transition-all"
+              >
+                <Globe className="h-5 w-5 text-primary" />
+                <span className="font-medium">Simulations</span>
               </Link>
               
               {isHome && (
