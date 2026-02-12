@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Code2, Flame, Network, HelpCircle, GitCompare, Bug, Trophy, Share2 } from "lucide-react";
+import { ArrowLeft, Code2, Flame, Network, HelpCircle, GitCompare, Bug, Trophy, Share2, ChevronDown, ChevronUp } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SortingVisualizer } from "@/components/visualizer/SortingVisualizer";
 import { RaceMode } from "@/components/visualizer/RaceMode";
@@ -11,6 +11,11 @@ import { ComparisonMode } from "@/components/visualizer/ComparisonMode";
 import { DebugMode } from "@/components/visualizer/DebugMode";
 import { ChallengeMode } from "@/components/visualizer/ChallengeMode";
 import { GraphVisualizer } from "@/components/visualizer/GraphVisualizer";
+import { ComplexityComparisonPanel } from "@/components/visualizer/ComplexityComparisonPanel";
+import { AITutorPanel } from "@/components/visualizer/AITutorPanel";
+import { SmartDebugPanel } from "@/components/visualizer/SmartDebugPanel";
+import { AdaptiveDifficulty } from "@/components/visualizer/AdaptiveDifficulty";
+import { VoiceNarration } from "@/components/visualizer/VoiceNarration";
 import AnimatedBackground from "@/components/AnimatedBackground";
 import { Navigation } from "@/components/Navigation";
 import { OnboardingTutorial } from "@/components/OnboardingTutorial";
@@ -28,6 +33,8 @@ const Visualizer = () => {
     isExporting
   } = useExportVisualization();
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
+  const [showAITools, setShowAITools] = useState(false);
+  const [userCode, setUserCode] = useState("");
   const handleExportImage = () => {
     exportAsImage("visualizer-content", `${activeTab}-visualization.png`);
   };
@@ -168,6 +175,35 @@ const Visualizer = () => {
               <GraphVisualizer />
             </TabsContent>
           </Tabs>
+        </div>
+
+        {/* AI Tools Section */}
+        <div className="mt-6">
+          <Button
+            variant="outline"
+            onClick={() => setShowAITools(!showAITools)}
+            className="w-full gap-2 mb-4"
+          >
+            {showAITools ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            {showAITools ? "Hide" : "Show"} AI Learning Tools
+          </Button>
+
+          {showAITools && (
+            <div className="space-y-6">
+              {/* Voice Narration Bar */}
+              <div className="flex items-center justify-between bg-card/50 border border-border/50 rounded-lg p-3 backdrop-blur-sm">
+                <span className="text-sm font-medium">Voice Narration</span>
+                <VoiceNarration text="Welcome to the Algorithm Visualizer. Select an algorithm and press play to hear step-by-step narration." />
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <ComplexityComparisonPanel selectedAlgorithm="Bubble Sort" userCode={userCode} />
+                <AITutorPanel currentAlgorithm="Bubble Sort" userCode={userCode} />
+                <SmartDebugPanel code={userCode || "// Paste your code here to analyze"} />
+                <AdaptiveDifficulty />
+              </div>
+            </div>
+          )}
         </div>
       </div>
       <OnboardingTutorial open={showOnboarding} onClose={() => setShowOnboarding(false)} />
