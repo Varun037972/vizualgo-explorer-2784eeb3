@@ -13,6 +13,7 @@ const Auth = lazy(() => import("@/pages/Auth"));
 const Learn = lazy(() => import("@/pages/Learn"));
 const LearnModule = lazy(() => import("@/pages/LearnModule"));
 const Simulations = lazy(() => import("@/pages/Simulations"));
+const Placement = lazy(() => import("@/pages/Placement"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 
 const AnimatedRoutes = () => {
@@ -83,6 +84,14 @@ const AnimatedRoutes = () => {
             element={
               <PageTransition>
                 <Simulations />
+              </PageTransition>
+            }
+          />
+          <Route
+            path="/placement"
+            element={
+              <PageTransition>
+                <Placement />
               </PageTransition>
             }
           />
