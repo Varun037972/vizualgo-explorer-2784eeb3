@@ -11,7 +11,8 @@ serve(async (req) => {
   }
 
   try {
-    const { type, currentAlgorithm, userCode, performance, question } = await req.json();
+    const body = await req.json();
+    const { type, currentAlgorithm, userCode, performance, question, category, count } = body;
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
@@ -30,6 +31,28 @@ Return a JSON object with:
       userPrompt = `Current algorithm: ${currentAlgorithm || "None"}
 Performance: ${JSON.stringify(performance || { accuracy: 0, weakTopics: [] })}
 ${userCode ? `Current code:\n${userCode.slice(0, 500)}` : "No code submitted yet"}`;
+    } else if (type === "aptitude") {
+      const qCount = count || 5;
+      const qCategory = category || "Mixed";
+      systemPrompt = `You are an aptitude test question generator for placement preparation. Generate exactly ${qCount} multiple-choice questions for the category: ${qCategory} (can be Quantitative, Logical Reasoning, Verbal, or Technical).
+
+Each question must have exactly 4 options and one correct answer index (0-3).
+
+Return a JSON object with:
+{
+  "questions": [
+    {
+      "question": "The question text",
+      "options": ["Option A", "Option B", "Option C", "Option D"],
+      "answer": 0,
+      "category": "Quantitative"
+    }
+  ]
+}
+
+Make questions placement-exam appropriate. Vary difficulty. Do NOT repeat common textbook questions.`;
+
+      userPrompt = `Generate ${qCount} ${qCategory} aptitude questions for engineering placement preparation.`;
     } else if (type === "question") {
       systemPrompt = `You are an expert algorithm tutor. Answer the student's question clearly and concisely. Use examples when helpful. Keep answers focused and educational. If the question is about code, reference specific lines or patterns.
 

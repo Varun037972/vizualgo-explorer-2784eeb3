@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Navigation } from "@/components/Navigation";
 import AnimatedBackground from "@/components/AnimatedBackground";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -27,9 +27,13 @@ import {
   ExternalLink,
   Plus,
   Trash2,
+  Loader2,
+  Sparkles,
+  RefreshCw,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 // ─── Aptitude Data ───────────────────────────────────────────────
 
@@ -40,70 +44,41 @@ interface AptitudeQuestion {
   category: string;
 }
 
-const aptitudeQuestions: AptitudeQuestion[] = [
-  {
-    question: "A train running at 60 km/hr crosses a pole in 9 seconds. What is the length of the train?",
-    options: ["120 m", "150 m", "180 m", "200 m"],
-    answer: 1,
-    category: "Quantitative",
-  },
-  {
-    question: "Find the missing number in the series: 2, 6, 12, 20, 30, ?",
-    options: ["40", "42", "38", "44"],
-    answer: 1,
-    category: "Logical Reasoning",
-  },
-  {
-    question: "If APPLE is coded as 50, then MANGO is coded as?",
-    options: ["57", "52", "55", "60"],
-    answer: 0,
-    category: "Logical Reasoning",
-  },
-  {
-    question: "What is the time complexity of binary search?",
-    options: ["O(n)", "O(log n)", "O(n²)", "O(1)"],
-    answer: 1,
-    category: "Technical",
-  },
-  {
-    question: "In a class of 40 students, 12 enrolled for both English and German. 22 enrolled for German. If the students study at least one of the two languages, how many enrolled for English only?",
-    options: ["18", "10", "6", "28"],
-    answer: 2,
-    category: "Quantitative",
-  },
-  {
-    question: "Which data structure uses LIFO order?",
-    options: ["Queue", "Stack", "Array", "Linked List"],
-    answer: 1,
-    category: "Technical",
-  },
-  {
-    question: "Choose the correct synonym of 'Eloquent':",
-    options: ["Silent", "Articulate", "Rude", "Confused"],
-    answer: 1,
-    category: "Verbal",
-  },
-  {
-    question: "A is the father of B. B is the sister of C. D is the mother of C. How is A related to D?",
-    options: ["Brother", "Father", "Husband", "Son"],
-    answer: 2,
-    category: "Logical Reasoning",
-  },
-  {
-    question: "What does SQL stand for?",
-    options: ["Simple Query Language", "Structured Query Language", "Standard Query Logic", "System Query Language"],
-    answer: 1,
-    category: "Technical",
-  },
-  {
-    question: "If the cost price is ₹500 and selling price is ₹600, what is the profit percentage?",
-    options: ["15%", "20%", "25%", "10%"],
-    answer: 1,
-    category: "Quantitative",
-  },
-];
+const staticQuestions: AptitudeQuestion[] = [
+  // Quantitative
+  { question: "A train running at 60 km/hr crosses a pole in 9 seconds. What is the length of the train?", options: ["120 m", "150 m", "180 m", "200 m"], answer: 1, category: "Quantitative" },
+  { question: "In a class of 40 students, 12 enrolled for both English and German. 22 enrolled for German. If the students study at least one of the two languages, how many enrolled for English only?", options: ["18", "10", "6", "28"], answer: 2, category: "Quantitative" },
+  { question: "If the cost price is ₹500 and selling price is ₹600, what is the profit percentage?", options: ["15%", "20%", "25%", "10%"], answer: 1, category: "Quantitative" },
+  { question: "A can do a piece of work in 10 days and B can do the same work in 15 days. In how many days can they complete the work together?", options: ["5 days", "6 days", "7 days", "8 days"], answer: 1, category: "Quantitative" },
+  { question: "The ratio of ages of A and B is 3:5. If the difference of their ages is 12 years, what is A's age?", options: ["15", "18", "20", "24"], answer: 1, category: "Quantitative" },
+  { question: "A shopkeeper marks an item 30% above cost price and gives a discount of 10%. What is the profit percentage?", options: ["17%", "20%", "15%", "12%"], answer: 0, category: "Quantitative" },
+  { question: "If the simple interest on a sum of ₹2000 for 3 years is ₹600, what is the rate of interest per annum?", options: ["8%", "10%", "12%", "15%"], answer: 1, category: "Quantitative" },
 
-// ─── Company Data ────────────────────────────────────────────────
+  // Logical Reasoning
+  { question: "Find the missing number in the series: 2, 6, 12, 20, 30, ?", options: ["40", "42", "38", "44"], answer: 1, category: "Logical Reasoning" },
+  { question: "If APPLE is coded as 50, then MANGO is coded as?", options: ["57", "52", "55", "60"], answer: 0, category: "Logical Reasoning" },
+  { question: "A is the father of B. B is the sister of C. D is the mother of C. How is A related to D?", options: ["Brother", "Father", "Husband", "Son"], answer: 2, category: "Logical Reasoning" },
+  { question: "If 'MOUSE' is coded as 'PRXVH', how is 'CHAIR' coded?", options: ["FKDLU", "FKDLY", "EKDLU", "FKELU"], answer: 0, category: "Logical Reasoning" },
+  { question: "Complete the pattern: AZ, BY, CX, DW, ?", options: ["EV", "EU", "FV", "EW"], answer: 0, category: "Logical Reasoning" },
+  { question: "If all roses are flowers and some flowers are red, which statement is definitely true?", options: ["All roses are red", "Some roses are red", "No roses are red", "None of these is definitely true"], answer: 3, category: "Logical Reasoning" },
+
+  // Technical
+  { question: "What is the time complexity of binary search?", options: ["O(n)", "O(log n)", "O(n²)", "O(1)"], answer: 1, category: "Technical" },
+  { question: "Which data structure uses LIFO order?", options: ["Queue", "Stack", "Array", "Linked List"], answer: 1, category: "Technical" },
+  { question: "What does SQL stand for?", options: ["Simple Query Language", "Structured Query Language", "Standard Query Logic", "System Query Language"], answer: 1, category: "Technical" },
+  { question: "Which sorting algorithm has the best average-case time complexity?", options: ["Bubble Sort", "Selection Sort", "Merge Sort", "Insertion Sort"], answer: 2, category: "Technical" },
+  { question: "What is the default value of a boolean variable in Java?", options: ["true", "false", "null", "0"], answer: 1, category: "Technical" },
+  { question: "Which protocol is used for secure web browsing?", options: ["HTTP", "FTP", "HTTPS", "SMTP"], answer: 2, category: "Technical" },
+  { question: "In a max-heap, the root element is always:", options: ["The smallest element", "The largest element", "The median", "Random"], answer: 1, category: "Technical" },
+  { question: "What is the space complexity of a recursive Fibonacci function?", options: ["O(1)", "O(n)", "O(log n)", "O(2^n)"], answer: 1, category: "Technical" },
+
+  // Verbal
+  { question: "Choose the correct synonym of 'Eloquent':", options: ["Silent", "Articulate", "Rude", "Confused"], answer: 1, category: "Verbal" },
+  { question: "Choose the antonym of 'Benevolent':", options: ["Kind", "Malevolent", "Generous", "Gracious"], answer: 1, category: "Verbal" },
+  { question: "Identify the correctly spelled word:", options: ["Accomodate", "Accommodate", "Acommodate", "Acomodate"], answer: 1, category: "Verbal" },
+  { question: "'He is too weak to walk.' The underlined word 'too' indicates:", options: ["Excess", "Addition", "Comparison", "Emphasis"], answer: 0, category: "Verbal" },
+  { question: "Fill in the blank: 'She is proficient ___ English.'", options: ["at", "in", "on", "for"], answer: 1, category: "Verbal" },
+];
 
 interface Company {
   name: string;
@@ -149,15 +124,20 @@ const interviewQuestions: InterviewQuestion[] = [
 // ─── Aptitude Mock Test Component ────────────────────────────────
 
 const AptitudeMockTest = () => {
+  const [questions, setQuestions] = useState<AptitudeQuestion[]>(staticQuestions);
   const [started, setStarted] = useState(false);
   const [currentQ, setCurrentQ] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
-  const [answers, setAnswers] = useState<(number | null)[]>(Array(aptitudeQuestions.length).fill(null));
+  const [answers, setAnswers] = useState<(number | null)[]>(Array(staticQuestions.length).fill(null));
   const [showResult, setShowResult] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(600); // 10 min
+  const [timeLeft, setTimeLeft] = useState(600);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState("Mixed");
+  const [questionCount, setQuestionCount] = useState(10);
+  const [useAI, setUseAI] = useState(false);
 
   // Timer
-  useState(() => {
+  useEffect(() => {
     if (!started || showResult) return;
     const interval = setInterval(() => {
       setTimeLeft((prev) => {
@@ -170,21 +150,79 @@ const AptitudeMockTest = () => {
       });
     }, 1000);
     return () => clearInterval(interval);
-  });
+  }, [started, showResult]);
 
-  const score = answers.reduce((acc, ans, i) => (ans === aptitudeQuestions[i].answer ? acc + 1 : acc), 0);
-  const percentage = Math.round((score / aptitudeQuestions.length) * 100);
+  const generateAIQuestions = useCallback(async () => {
+    setAiLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("ai-tutor", {
+        body: {
+          type: "aptitude",
+          category: selectedCategory,
+          count: questionCount,
+        },
+      });
+      if (error) throw error;
+      if (data.questions && data.questions.length > 0) {
+        setQuestions(data.questions);
+        setAnswers(Array(data.questions.length).fill(null));
+        setTimeLeft(data.questions.length * 60);
+        toast.success(`Generated ${data.questions.length} AI questions!`);
+      } else {
+        toast.error("No questions generated. Using static questions.");
+        setQuestions(staticQuestions);
+        setAnswers(Array(staticQuestions.length).fill(null));
+      }
+    } catch (err) {
+      console.error("AI question generation error:", err);
+      toast.error("Failed to generate AI questions. Using static questions.");
+      setQuestions(staticQuestions);
+      setAnswers(Array(staticQuestions.length).fill(null));
+    } finally {
+      setAiLoading(false);
+    }
+  }, [selectedCategory, questionCount]);
+
+  const score = answers.reduce((acc, ans, i) => (ans === questions[i]?.answer ? acc + 1 : acc), 0);
+  const percentage = questions.length > 0 ? Math.round((score / questions.length) * 100) : 0;
 
   const handleNext = () => {
     const newAnswers = [...answers];
     newAnswers[currentQ] = selected;
     setAnswers(newAnswers);
     setSelected(null);
-    if (currentQ < aptitudeQuestions.length - 1) {
+    if (currentQ < questions.length - 1) {
       setCurrentQ(currentQ + 1);
     } else {
       setShowResult(true);
     }
+  };
+
+  const handleStart = async () => {
+    if (useAI) {
+      await generateAIQuestions();
+    } else {
+      // Shuffle and pick questionCount from static
+      const shuffled = [...staticQuestions].sort(() => Math.random() - 0.5);
+      const filtered = selectedCategory === "Mixed"
+        ? shuffled.slice(0, questionCount)
+        : shuffled.filter(q => q.category === selectedCategory).slice(0, questionCount);
+      const picked = filtered.length >= questionCount ? filtered : shuffled.slice(0, questionCount);
+      setQuestions(picked);
+      setAnswers(Array(picked.length).fill(null));
+      setTimeLeft(picked.length * 60);
+    }
+    setStarted(true);
+  };
+
+  const resetTest = () => {
+    setStarted(false);
+    setCurrentQ(0);
+    setSelected(null);
+    setShowResult(false);
+    setTimeLeft(600);
+    setQuestions(staticQuestions);
+    setAnswers(Array(staticQuestions.length).fill(null));
   };
 
   if (!started) {
@@ -195,15 +233,50 @@ const AptitudeMockTest = () => {
         </div>
         <h2 className="text-2xl font-bold">Aptitude Mock Test</h2>
         <p className="text-muted-foreground max-w-md mx-auto">
-          {aptitudeQuestions.length} questions • 10 minutes • Covers Quantitative, Logical Reasoning, Verbal & Technical
+          Customize your test — choose category, question count, or generate fresh AI questions.
         </p>
-        <div className="flex flex-wrap justify-center gap-2">
-          {["Quantitative", "Logical Reasoning", "Technical", "Verbal"].map((cat) => (
-            <Badge key={cat} variant="outline" className="bg-primary/5 border-primary/20">{cat}</Badge>
-          ))}
+
+        {/* Config */}
+        <div className="max-w-md mx-auto space-y-4 text-left">
+          <div>
+            <label className="text-sm font-medium mb-1 block">Category</label>
+            <div className="flex flex-wrap gap-2">
+              {["Mixed", "Quantitative", "Logical Reasoning", "Technical", "Verbal"].map((cat) => (
+                <Button key={cat} size="sm" variant={selectedCategory === cat ? "default" : "outline"} onClick={() => setSelectedCategory(cat)}>
+                  {cat}
+                </Button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label className="text-sm font-medium mb-1 block">Number of Questions</label>
+            <div className="flex gap-2">
+              {[5, 10, 15, 20].map((n) => (
+                <Button key={n} size="sm" variant={questionCount === n ? "default" : "outline"} onClick={() => setQuestionCount(n)}>
+                  {n}
+                </Button>
+              ))}
+            </div>
+          </div>
+          <div className="flex items-center gap-3 p-3 rounded-lg border border-border/50 bg-card/50">
+            <Button
+              size="sm"
+              variant={useAI ? "default" : "outline"}
+              onClick={() => setUseAI(!useAI)}
+              className="gap-2"
+            >
+              <Sparkles className="h-4 w-4" />
+              {useAI ? "AI Enabled" : "Enable AI Questions"}
+            </Button>
+            <span className="text-xs text-muted-foreground">
+              {useAI ? "Questions will be generated by AI" : "Uses built-in question bank"}
+            </span>
+          </div>
         </div>
-        <Button size="lg" onClick={() => setStarted(true)} className="gap-2">
-          <Target className="h-5 w-5" /> Start Test
+
+        <Button size="lg" onClick={handleStart} disabled={aiLoading} className="gap-2">
+          {aiLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Target className="h-5 w-5" />}
+          {aiLoading ? "Generating Questions..." : "Start Test"}
         </Button>
       </div>
     );
@@ -215,11 +288,11 @@ const AptitudeMockTest = () => {
         <div className="text-center space-y-4">
           <Trophy className={`h-16 w-16 mx-auto ${percentage >= 70 ? "text-accent" : percentage >= 40 ? "text-primary" : "text-destructive"}`} />
           <h2 className="text-3xl font-bold">{percentage}%</h2>
-          <p className="text-muted-foreground">You scored {score} out of {aptitudeQuestions.length}</p>
+          <p className="text-muted-foreground">You scored {score} out of {questions.length}</p>
           <Progress value={percentage} className="w-64 mx-auto h-3" />
         </div>
         <div className="grid gap-3 max-w-2xl mx-auto">
-          {aptitudeQuestions.map((q, i) => (
+          {questions.map((q, i) => (
             <div key={i} className={`p-4 rounded-lg border ${answers[i] === q.answer ? "border-green-500/30 bg-green-500/5" : "border-destructive/30 bg-destructive/5"}`}>
               <div className="flex items-start gap-3">
                 {answers[i] === q.answer ? <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" /> : <XCircle className="h-5 w-5 text-destructive mt-0.5 flex-shrink-0" />}
@@ -233,16 +306,19 @@ const AptitudeMockTest = () => {
             </div>
           ))}
         </div>
-        <div className="text-center">
-          <Button onClick={() => { setStarted(false); setCurrentQ(0); setSelected(null); setAnswers(Array(aptitudeQuestions.length).fill(null)); setShowResult(false); setTimeLeft(600); }}>
-            Retry Test
+        <div className="text-center flex justify-center gap-3">
+          <Button onClick={resetTest}>Retry Test</Button>
+          <Button variant="outline" onClick={() => { resetTest(); setUseAI(true); }} className="gap-2">
+            <Sparkles className="h-4 w-4" /> Try AI Questions
           </Button>
         </div>
       </motion.div>
     );
   }
 
-  const q = aptitudeQuestions[currentQ];
+  const q = questions[currentQ];
+  if (!q) return null;
+
   return (
     <motion.div key={currentQ} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6 max-w-2xl mx-auto">
       <div className="flex items-center justify-between">
@@ -252,8 +328,8 @@ const AptitudeMockTest = () => {
           {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, "0")}
         </div>
       </div>
-      <Progress value={((currentQ + 1) / aptitudeQuestions.length) * 100} className="h-2" />
-      <p className="text-xs text-muted-foreground">Question {currentQ + 1} of {aptitudeQuestions.length}</p>
+      <Progress value={((currentQ + 1) / questions.length) * 100} className="h-2" />
+      <p className="text-xs text-muted-foreground">Question {currentQ + 1} of {questions.length}</p>
       <h3 className="text-lg font-semibold">{q.question}</h3>
       <div className="grid gap-3">
         {q.options.map((opt, i) => (
@@ -267,7 +343,7 @@ const AptitudeMockTest = () => {
         ))}
       </div>
       <Button onClick={handleNext} disabled={selected === null} className="w-full gap-2">
-        {currentQ < aptitudeQuestions.length - 1 ? "Next Question" : "Submit Test"} <ArrowRight className="h-4 w-4" />
+        {currentQ < questions.length - 1 ? "Next Question" : "Submit Test"} <ArrowRight className="h-4 w-4" />
       </Button>
     </motion.div>
   );
