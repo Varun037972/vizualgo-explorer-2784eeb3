@@ -14,6 +14,11 @@ const Learn = lazy(() => import("@/pages/Learn"));
 const LearnModule = lazy(() => import("@/pages/LearnModule"));
 const Simulations = lazy(() => import("@/pages/Simulations"));
 const Placement = lazy(() => import("@/pages/Placement"));
+const Dashboard = lazy(() => import("@/pages/Dashboard"));
+const AITutor = lazy(() => import("@/pages/AITutor"));
+const Quiz = lazy(() => import("@/pages/Quiz"));
+const Analytics = lazy(() => import("@/pages/Analytics"));
+const Faculty = lazy(() => import("@/pages/Faculty"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 
 const AnimatedRoutes = () => {
@@ -92,6 +97,46 @@ const AnimatedRoutes = () => {
             element={
               <PageTransition>
                 <Placement />
+              </PageTransition>
+            }
+          />
+          <Route
+            path="/dashboard"
+            element={
+              <PageTransition>
+                <Dashboard />
+              </PageTransition>
+            }
+          />
+          <Route
+            path="/ai-tutor"
+            element={
+              <PageTransition>
+                <AITutor />
+              </PageTransition>
+            }
+          />
+          <Route
+            path="/quiz"
+            element={
+              <PageTransition>
+                <Quiz />
+              </PageTransition>
+            }
+          />
+          <Route
+            path="/analytics"
+            element={
+              <PageTransition>
+                <Analytics />
+              </PageTransition>
+            }
+          />
+          <Route
+            path="/faculty"
+            element={
+              <PageTransition>
+                <Faculty />
               </PageTransition>
             }
           />
