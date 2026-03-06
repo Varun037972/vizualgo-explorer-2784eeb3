@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Code2, Home, BookOpen, PlayCircle, LogIn, Menu, X, GraduationCap, Globe, Briefcase } from "lucide-react";
+import { Code2, Home, BookOpen, PlayCircle, LogIn, Menu, X, GraduationCap, Globe, Briefcase, Brain, Trophy, BarChart3, Shield, LayoutDashboard } from "lucide-react";
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -126,10 +126,28 @@ export const Navigation = () => {
             </NavigationMenuItem>
 
             <NavigationMenuItem>
+              <Link to="/dashboard">
+                <NavigationMenuLink className="flex items-center gap-2 px-4 py-2.5 rounded-lg hover:bg-primary/10 hover:text-primary transition-all duration-300 font-medium">
+                  <LayoutDashboard className="h-4 w-4" />
+                  Dashboard
+                </NavigationMenuLink>
+              </Link>
+            </NavigationMenuItem>
+
+            <NavigationMenuItem>
               <Link to="/demo">
                 <NavigationMenuLink className="flex items-center gap-2 px-4 py-2.5 rounded-lg hover:bg-primary/10 hover:text-primary transition-all duration-300 font-medium">
                   <PlayCircle className="h-4 w-4" />
                   Demo
+                </NavigationMenuLink>
+              </Link>
+            </NavigationMenuItem>
+
+            <NavigationMenuItem>
+              <Link to="/ai-tutor">
+                <NavigationMenuLink className="flex items-center gap-2 px-4 py-2.5 rounded-lg hover:bg-primary/10 hover:text-primary transition-all duration-300 font-medium">
+                  <Brain className="h-4 w-4" />
+                  AI Tutor
                 </NavigationMenuLink>
               </Link>
             </NavigationMenuItem>
@@ -144,10 +162,10 @@ export const Navigation = () => {
             </NavigationMenuItem>
 
             <NavigationMenuItem>
-              <Link to="/simulations">
+              <Link to="/quiz">
                 <NavigationMenuLink className="flex items-center gap-2 px-4 py-2.5 rounded-lg hover:bg-primary/10 hover:text-primary transition-all duration-300 font-medium">
-                  <Globe className="h-4 w-4" />
-                  Simulations
+                  <Trophy className="h-4 w-4" />
+                  Quiz
                 </NavigationMenuLink>
               </Link>
             </NavigationMenuItem>
@@ -157,6 +175,33 @@ export const Navigation = () => {
                 <NavigationMenuLink className="flex items-center gap-2 px-4 py-2.5 rounded-lg hover:bg-primary/10 hover:text-primary transition-all duration-300 font-medium">
                   <Briefcase className="h-4 w-4" />
                   Placement
+                </NavigationMenuLink>
+              </Link>
+            </NavigationMenuItem>
+
+            <NavigationMenuItem>
+              <Link to="/analytics">
+                <NavigationMenuLink className="flex items-center gap-2 px-4 py-2.5 rounded-lg hover:bg-primary/10 hover:text-primary transition-all duration-300 font-medium">
+                  <BarChart3 className="h-4 w-4" />
+                  Analytics
+                </NavigationMenuLink>
+              </Link>
+            </NavigationMenuItem>
+
+            <NavigationMenuItem>
+              <Link to="/faculty">
+                <NavigationMenuLink className="flex items-center gap-2 px-4 py-2.5 rounded-lg hover:bg-primary/10 hover:text-primary transition-all duration-300 font-medium">
+                  <Shield className="h-4 w-4" />
+                  Faculty
+                </NavigationMenuLink>
+              </Link>
+            </NavigationMenuItem>
+
+            <NavigationMenuItem>
+              <Link to="/docs">
+                <NavigationMenuLink className="flex items-center gap-2 px-4 py-2.5 rounded-lg hover:bg-primary/10 hover:text-primary transition-all duration-300 font-medium">
+                  <BookOpen className="h-4 w-4" />
+                  Docs
                 </NavigationMenuLink>
               </Link>
             </NavigationMenuItem>
@@ -236,58 +281,45 @@ export const Navigation = () => {
                 <span className="font-medium">Home</span>
               </button>
               
-              <Link 
-                to="/visualizer" 
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-primary/10 transition-all"
-              >
+              <Link to="/dashboard" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-primary/10 transition-all">
+                <LayoutDashboard className="h-5 w-5 text-primary" />
+                <span className="font-medium">Dashboard</span>
+              </Link>
+              <Link to="/visualizer" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-primary/10 transition-all">
                 <Code2 className="h-5 w-5 text-primary" />
                 <span className="font-medium">Visualizer</span>
               </Link>
-              
-              <Link 
-                to="/demo" 
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-primary/10 transition-all"
-              >
+              <Link to="/ai-tutor" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-primary/10 transition-all">
+                <Brain className="h-5 w-5 text-primary" />
+                <span className="font-medium">AI Tutor</span>
+              </Link>
+              <Link to="/demo" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-primary/10 transition-all">
                 <PlayCircle className="h-5 w-5 text-primary" />
                 <span className="font-medium">Demo</span>
               </Link>
-              
-              <Link 
-                to="/docs" 
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-primary/10 transition-all"
-              >
-                <BookOpen className="h-5 w-5 text-primary" />
-                <span className="font-medium">Docs</span>
-              </Link>
-
-              <Link 
-                to="/learn" 
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-primary/10 transition-all"
-              >
+              <Link to="/learn" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-primary/10 transition-all">
                 <GraduationCap className="h-5 w-5 text-primary" />
                 <span className="font-medium">Learn</span>
               </Link>
-
-              <Link 
-                to="/simulations" 
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-primary/10 transition-all"
-              >
-                <Globe className="h-5 w-5 text-primary" />
-                <span className="font-medium">Simulations</span>
+              <Link to="/quiz" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-primary/10 transition-all">
+                <Trophy className="h-5 w-5 text-primary" />
+                <span className="font-medium">Quiz</span>
               </Link>
-
-              <Link 
-                to="/placement" 
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-primary/10 transition-all"
-              >
+              <Link to="/placement" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-primary/10 transition-all">
                 <Briefcase className="h-5 w-5 text-primary" />
                 <span className="font-medium">Placement</span>
+              </Link>
+              <Link to="/analytics" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-primary/10 transition-all">
+                <BarChart3 className="h-5 w-5 text-primary" />
+                <span className="font-medium">Analytics</span>
+              </Link>
+              <Link to="/faculty" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-primary/10 transition-all">
+                <Shield className="h-5 w-5 text-primary" />
+                <span className="font-medium">Faculty</span>
+              </Link>
+              <Link to="/docs" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-primary/10 transition-all">
+                <BookOpen className="h-5 w-5 text-primary" />
+                <span className="font-medium">Docs</span>
               </Link>
               
               {isHome && (
