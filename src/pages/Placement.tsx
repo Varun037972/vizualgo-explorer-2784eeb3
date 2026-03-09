@@ -587,6 +587,10 @@ const ResumeBuilder = () => {
               ))}
             </div>
             <Button onClick={handleGenerate} className="w-full gap-2"><FileText className="h-4 w-4" /> Generate Resume Preview</Button>
+            <Button variant="outline" onClick={saveResume} disabled={saving} className="w-full gap-2 mt-2">
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+              Save Resume
+            </Button>
           </div>
         </div>
       ) : (
