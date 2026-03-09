@@ -481,6 +481,46 @@ const ResumeBuilder = () => {
     name: "", email: "", phone: "", branch: "", college: "", cgpa: "", skills: "", projects: [{ title: "", description: "" }], summary: "",
   });
   const [showPreview, setShowPreview] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+
+  // Load saved resume on mount
+  useEffect(() => {
+    const loadResume = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { setLoaded(true); return; }
+      const { data } = await supabase
+        .from("saved_resumes")
+        .select("resume_data")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (data?.resume_data) {
+        setResume(data.resume_data as unknown as ResumeData);
+      }
+      setLoaded(true);
+    };
+    loadResume();
+  }, []);
+
+  // Auto-save resume
+  const saveResume = useCallback(async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    setSaving(true);
+    const { data: existing } = await supabase
+      .from("saved_resumes")
+      .select("id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (existing) {
+      await supabase.from("saved_resumes").update({ resume_data: resume as any }).eq("user_id", user.id);
+    } else {
+      await supabase.from("saved_resumes").insert({ user_id: user.id, resume_data: resume as any } as any);
+    }
+    setSaving(false);
+    toast.success("Resume saved!");
+  }, [resume]);
 
   const updateField = (field: keyof ResumeData, value: string) => {
     setResume((prev) => ({ ...prev, [field]: value }));
