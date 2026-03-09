@@ -139,6 +139,22 @@ const AptitudeMockTest = () => {
   const [useAI, setUseAI] = useState(false);
   const [pastResults, setPastResults] = useState<any[]>([]);
 
+  // Load past results
+  useEffect(() => {
+    const loadResults = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase
+        .from("placement_test_results")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(10);
+      if (data) setPastResults(data);
+    };
+    loadResults();
+  }, [showResult]);
+
   // Timer
   useEffect(() => {
     if (!started || showResult) return;
@@ -154,6 +170,26 @@ const AptitudeMockTest = () => {
     }, 1000);
     return () => clearInterval(interval);
   }, [started, showResult]);
+
+  // Save result when test completes
+  useEffect(() => {
+    if (!showResult || questions.length === 0) return;
+    const saveResult = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const timeTaken = Math.round((Date.now() - startTime) / 1000);
+      await supabase.from("placement_test_results").insert({
+        user_id: user.id,
+        category: selectedCategory,
+        score,
+        total_questions: questions.length,
+        percentage,
+        time_taken: timeTaken,
+        used_ai: useAI,
+      } as any);
+    };
+    saveResult();
+  }, [showResult]);
 
   const generateAIQuestions = useCallback(async () => {
     setAiLoading(true);
