@@ -34,6 +34,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { useStudyTracker } from "@/hooks/useUserProgress";
 
 // ─── Aptitude Data ───────────────────────────────────────────────
 
@@ -131,10 +132,28 @@ const AptitudeMockTest = () => {
   const [answers, setAnswers] = useState<(number | null)[]>(Array(staticQuestions.length).fill(null));
   const [showResult, setShowResult] = useState(false);
   const [timeLeft, setTimeLeft] = useState(600);
+  const [startTime, setStartTime] = useState(0);
   const [aiLoading, setAiLoading] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("Mixed");
   const [questionCount, setQuestionCount] = useState(10);
   const [useAI, setUseAI] = useState(false);
+  const [pastResults, setPastResults] = useState<any[]>([]);
+
+  // Load past results
+  useEffect(() => {
+    const loadResults = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase
+        .from("placement_test_results")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(10);
+      if (data) setPastResults(data);
+    };
+    loadResults();
+  }, [showResult]);
 
   // Timer
   useEffect(() => {
@@ -151,6 +170,26 @@ const AptitudeMockTest = () => {
     }, 1000);
     return () => clearInterval(interval);
   }, [started, showResult]);
+
+  // Save result when test completes
+  useEffect(() => {
+    if (!showResult || questions.length === 0) return;
+    const saveResult = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const timeTaken = Math.round((Date.now() - startTime) / 1000);
+      await supabase.from("placement_test_results").insert({
+        user_id: user.id,
+        category: selectedCategory,
+        score,
+        total_questions: questions.length,
+        percentage,
+        time_taken: timeTaken,
+        used_ai: useAI,
+      } as any);
+    };
+    saveResult();
+  }, [showResult]);
 
   const generateAIQuestions = useCallback(async () => {
     setAiLoading(true);
@@ -202,7 +241,6 @@ const AptitudeMockTest = () => {
     if (useAI) {
       await generateAIQuestions();
     } else {
-      // Shuffle and pick questionCount from static
       const shuffled = [...staticQuestions].sort(() => Math.random() - 0.5);
       const filtered = selectedCategory === "Mixed"
         ? shuffled.slice(0, questionCount)
@@ -212,6 +250,7 @@ const AptitudeMockTest = () => {
       setAnswers(Array(picked.length).fill(null));
       setTimeLeft(picked.length * 60);
     }
+    setStartTime(Date.now());
     setStarted(true);
   };
 
@@ -278,6 +317,24 @@ const AptitudeMockTest = () => {
           {aiLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Target className="h-5 w-5" />}
           {aiLoading ? "Generating Questions..." : "Start Test"}
         </Button>
+
+        {/* Past Results */}
+        {pastResults.length > 0 && (
+          <div className="max-w-md mx-auto mt-8 space-y-3">
+            <h3 className="text-sm font-semibold text-muted-foreground">Recent Test Results</h3>
+            {pastResults.slice(0, 5).map((r: any, i: number) => (
+              <div key={i} className="flex items-center justify-between p-3 rounded-lg border border-border/50 bg-card/50 text-sm">
+                <div>
+                  <span className="font-medium">{r.category}</span>
+                  <span className="text-muted-foreground ml-2">({r.total_questions} Q)</span>
+                </div>
+                <Badge variant={r.percentage >= 70 ? "default" : "outline"} className={r.percentage >= 70 ? "bg-green-500/20 text-green-400" : ""}>
+                  {r.percentage}%
+                </Badge>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     );
   }
@@ -424,6 +481,46 @@ const ResumeBuilder = () => {
     name: "", email: "", phone: "", branch: "", college: "", cgpa: "", skills: "", projects: [{ title: "", description: "" }], summary: "",
   });
   const [showPreview, setShowPreview] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+
+  // Load saved resume on mount
+  useEffect(() => {
+    const loadResume = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { setLoaded(true); return; }
+      const { data } = await supabase
+        .from("saved_resumes")
+        .select("resume_data")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (data?.resume_data) {
+        setResume(data.resume_data as unknown as ResumeData);
+      }
+      setLoaded(true);
+    };
+    loadResume();
+  }, []);
+
+  // Auto-save resume
+  const saveResume = useCallback(async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    setSaving(true);
+    const { data: existing } = await supabase
+      .from("saved_resumes")
+      .select("id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (existing) {
+      await supabase.from("saved_resumes").update({ resume_data: resume as any }).eq("user_id", user.id);
+    } else {
+      await supabase.from("saved_resumes").insert({ user_id: user.id, resume_data: resume as any } as any);
+    }
+    setSaving(false);
+    toast.success("Resume saved!");
+  }, [resume]);
 
   const updateField = (field: keyof ResumeData, value: string) => {
     setResume((prev) => ({ ...prev, [field]: value }));
@@ -451,7 +548,7 @@ const ResumeBuilder = () => {
       return;
     }
     setShowPreview(true);
-    toast.success("Resume preview generated!");
+    saveResume();
   };
 
   return (
@@ -490,6 +587,10 @@ const ResumeBuilder = () => {
               ))}
             </div>
             <Button onClick={handleGenerate} className="w-full gap-2"><FileText className="h-4 w-4" /> Generate Resume Preview</Button>
+            <Button variant="outline" onClick={saveResume} disabled={saving} className="w-full gap-2 mt-2">
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+              Save Resume
+            </Button>
           </div>
         </div>
       ) : (
@@ -589,6 +690,7 @@ const InterviewPractice = () => {
 // ─── Main Placement Page ─────────────────────────────────────────
 
 const Placement = () => {
+  useStudyTracker("placement");
   return (
     <div className="min-h-screen bg-background relative">
       <AnimatedBackground />
