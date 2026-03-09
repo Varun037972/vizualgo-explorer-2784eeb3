@@ -77,6 +77,21 @@ const Quiz = () => {
     return () => clearInterval(timer);
   }, [phase, timeLeft]);
 
+  // Save quiz result when finished
+  useEffect(() => {
+    if (phase === "results" && questions.length > 0) {
+      const timeTaken = Math.round((Date.now() - startTime) / 1000);
+      saveQuizResult({
+        category,
+        score: questions.reduce((acc, q, i) => acc + (answers[i] === q.answer ? 1 : 0), 0),
+        total_questions: questions.length,
+        percentage: Math.round((questions.reduce((acc, q, i) => acc + (answers[i] === q.answer ? 1 : 0), 0) / questions.length) * 100),
+        time_taken: timeTaken,
+        used_ai: useAI,
+      });
+    }
+  }, [phase]);
+
   const generateQuestions = async () => {
     setIsLoading(true);
     try {
