@@ -54,9 +54,12 @@ const Quiz = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<(number | null)[]>([]);
   const [timeLeft, setTimeLeft] = useState(0);
+  const [startTime, setStartTime] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [showReview, setShowReview] = useState(false);
   const { toast } = useToast();
+
+  useStudyTracker("quiz");
 
   // Timer
   useEffect(() => {
