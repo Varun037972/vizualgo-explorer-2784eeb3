@@ -113,6 +113,7 @@ const Quiz = () => {
       setQuestions(shuffled);
       setAnswers(new Array(shuffled.length).fill(null));
       setTimeLeft(shuffled.length * 60);
+      setStartTime(Date.now());
       setPhase("quiz");
     } finally {
       setIsLoading(false);
