@@ -104,6 +104,7 @@ const Quiz = () => {
       setQuestions(shuffled.slice(0, questionCount));
       setAnswers(new Array(Math.min(shuffled.length, questionCount)).fill(null));
       setTimeLeft(Math.min(shuffled.length, questionCount) * 60);
+      setStartTime(Date.now());
       setPhase("quiz");
     } catch (error: any) {
       toast({ title: "Error", description: error.message || "Failed to generate questions", variant: "destructive" });
