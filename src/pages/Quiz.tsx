@@ -15,6 +15,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { saveQuizResult, useStudyTracker } from "@/hooks/useUserProgress";
 
 interface Question {
   question: string;
