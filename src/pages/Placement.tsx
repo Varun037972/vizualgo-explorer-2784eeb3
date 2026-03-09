@@ -548,7 +548,7 @@ const ResumeBuilder = () => {
       return;
     }
     setShowPreview(true);
-    toast.success("Resume preview generated!");
+    saveResume();
   };
 
   return (
