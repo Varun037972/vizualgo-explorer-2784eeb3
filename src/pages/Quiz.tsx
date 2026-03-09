@@ -89,6 +89,7 @@ const Quiz = () => {
           setQuestions(data.questions);
           setAnswers(new Array(data.questions.length).fill(null));
           setTimeLeft(data.questions.length * 60);
+          setStartTime(Date.now());
           setPhase("quiz");
           return;
         }
