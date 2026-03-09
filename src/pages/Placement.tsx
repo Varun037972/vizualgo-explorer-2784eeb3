@@ -317,6 +317,24 @@ const AptitudeMockTest = () => {
           {aiLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Target className="h-5 w-5" />}
           {aiLoading ? "Generating Questions..." : "Start Test"}
         </Button>
+
+        {/* Past Results */}
+        {pastResults.length > 0 && (
+          <div className="max-w-md mx-auto mt-8 space-y-3">
+            <h3 className="text-sm font-semibold text-muted-foreground">Recent Test Results</h3>
+            {pastResults.slice(0, 5).map((r: any, i: number) => (
+              <div key={i} className="flex items-center justify-between p-3 rounded-lg border border-border/50 bg-card/50 text-sm">
+                <div>
+                  <span className="font-medium">{r.category}</span>
+                  <span className="text-muted-foreground ml-2">({r.total_questions} Q)</span>
+                </div>
+                <Badge variant={r.percentage >= 70 ? "default" : "outline"} className={r.percentage >= 70 ? "bg-green-500/20 text-green-400" : ""}>
+                  {r.percentage}%
+                </Badge>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     );
   }
