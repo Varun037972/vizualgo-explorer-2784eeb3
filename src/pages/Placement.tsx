@@ -132,10 +132,12 @@ const AptitudeMockTest = () => {
   const [answers, setAnswers] = useState<(number | null)[]>(Array(staticQuestions.length).fill(null));
   const [showResult, setShowResult] = useState(false);
   const [timeLeft, setTimeLeft] = useState(600);
+  const [startTime, setStartTime] = useState(0);
   const [aiLoading, setAiLoading] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("Mixed");
   const [questionCount, setQuestionCount] = useState(10);
   const [useAI, setUseAI] = useState(false);
+  const [pastResults, setPastResults] = useState<any[]>([]);
 
   // Timer
   useEffect(() => {
