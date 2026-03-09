@@ -241,7 +241,6 @@ const AptitudeMockTest = () => {
     if (useAI) {
       await generateAIQuestions();
     } else {
-      // Shuffle and pick questionCount from static
       const shuffled = [...staticQuestions].sort(() => Math.random() - 0.5);
       const filtered = selectedCategory === "Mixed"
         ? shuffled.slice(0, questionCount)
@@ -251,6 +250,7 @@ const AptitudeMockTest = () => {
       setAnswers(Array(picked.length).fill(null));
       setTimeLeft(picked.length * 60);
     }
+    setStartTime(Date.now());
     setStarted(true);
   };
 
