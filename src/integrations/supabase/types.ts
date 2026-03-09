@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      placement_test_results: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          percentage: number
+          score: number
+          time_taken: number | null
+          total_questions: number
+          used_ai: boolean
+          user_id: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          id?: string
+          percentage: number
+          score: number
+          time_taken?: number | null
+          total_questions: number
+          used_ai?: boolean
+          user_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          percentage?: number
+          score?: number
+          time_taken?: number | null
+          total_questions?: number
+          used_ai?: boolean
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string | null
@@ -67,6 +103,30 @@ export type Database = {
           time_taken?: number | null
           total_questions?: number
           used_ai?: boolean
+          user_id?: string
+        }
+        Relationships: []
+      }
+      saved_resumes: {
+        Row: {
+          created_at: string
+          id: string
+          resume_data: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          resume_data?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          resume_data?: Json
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
