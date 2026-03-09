@@ -690,6 +690,7 @@ const InterviewPractice = () => {
 // ─── Main Placement Page ─────────────────────────────────────────
 
 const Placement = () => {
+  useStudyTracker("placement");
   return (
     <div className="min-h-screen bg-background relative">
       <AnimatedBackground />
