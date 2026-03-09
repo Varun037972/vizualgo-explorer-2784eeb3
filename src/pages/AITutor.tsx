@@ -13,6 +13,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useStudyTracker } from "@/hooks/useUserProgress";
 
 type Mode = "explain" | "mcq" | "interview" | "code" | "notes";
 type Message = { role: "user" | "assistant"; content: string; mode?: Mode };
