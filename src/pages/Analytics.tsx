@@ -1,33 +1,15 @@
+import { useState, useEffect } from "react";
 import { Navigation } from "@/components/Navigation";
 import AnimatedBackground from "@/components/AnimatedBackground";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { 
   BarChart3, TrendingUp, Clock, Trophy, Brain, Target, 
   BookOpen, Zap, Award, CheckCircle2
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from "recharts";
-
-const weeklyData = [
-  { day: "Mon", hours: 2.5, quizzes: 3 },
-  { day: "Tue", hours: 1.8, quizzes: 2 },
-  { day: "Wed", hours: 3.2, quizzes: 5 },
-  { day: "Thu", hours: 2.0, quizzes: 1 },
-  { day: "Fri", hours: 4.1, quizzes: 4 },
-  { day: "Sat", hours: 1.5, quizzes: 2 },
-  { day: "Sun", hours: 3.0, quizzes: 3 },
-];
-
-const progressData = [
-  { week: "W1", score: 45 },
-  { week: "W2", score: 52 },
-  { week: "W3", score: 58 },
-  { week: "W4", score: 65 },
-  { week: "W5", score: 72 },
-  { week: "W6", score: 78 },
-];
+import { useUserProgress, getQuizHistory, getStudyHours, useStudyTracker } from "@/hooks/useUserProgress";
 
 const topicPie = [
   { name: "Sorting", value: 35, color: "hsl(193, 100%, 50%)" },
@@ -47,15 +29,54 @@ const radarData = [
 ];
 
 const achievements = [
-  { title: "First Quiz", description: "Complete your first quiz", unlocked: true },
-  { title: "Speed Demon", description: "Score 100% under 2 min", unlocked: false },
-  { title: "7-Day Streak", description: "Study 7 days in a row", unlocked: false },
-  { title: "AI Explorer", description: "Complete 10 AI tutor sessions", unlocked: true },
-  { title: "Master Sorter", description: "Complete all sorting modules", unlocked: false },
-  { title: "Code Warrior", description: "Submit 50 code solutions", unlocked: false },
+  { title: "First Quiz", description: "Complete your first quiz", key: "first_quiz" },
+  { title: "Speed Demon", description: "Score 100% under 2 min", key: "speed_demon" },
+  { title: "7-Day Streak", description: "Study 7 days in a row", key: "streak_7" },
+  { title: "AI Explorer", description: "Complete 10 AI tutor sessions", key: "ai_explorer" },
+  { title: "Master Sorter", description: "Complete all sorting modules", key: "master_sorter" },
+  { title: "Quiz Master", description: "Complete 20 quizzes", key: "quiz_master" },
 ];
 
 const Analytics = () => {
+  const { progress } = useUserProgress();
+  const [studyHours, setStudyHours] = useState(0);
+  const [quizHistory, setQuizHistory] = useState<any[]>([]);
+
+  useStudyTracker("analytics");
+
+  useEffect(() => {
+    getStudyHours().then(setStudyHours);
+    getQuizHistory().then(setQuizHistory);
+  }, []);
+
+  const avgScore = quizHistory.length > 0
+    ? Math.round(quizHistory.reduce((sum, q) => sum + q.percentage, 0) / quizHistory.length)
+    : 0;
+
+  // Build weekly data from quiz history
+  const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const weeklyData = days.map(day => {
+    const dayQuizzes = quizHistory.filter(q => {
+      const d = new Date(q.created_at);
+      return days[d.getDay()] === day;
+    });
+    return { day, quizzes: dayQuizzes.length, hours: +(dayQuizzes.length * 0.3).toFixed(1) };
+  });
+
+  // Build progress data from last quizzes
+  const progressData = quizHistory.slice(0, 10).reverse().map((q, i) => ({
+    quiz: `Q${i + 1}`,
+    score: q.percentage,
+  }));
+
+  // Compute achievements
+  const unlockedAchievements = new Set<string>();
+  if (quizHistory.length >= 1) unlockedAchievements.add("first_quiz");
+  if (quizHistory.some(q => q.percentage === 100 && q.time_taken && q.time_taken < 120)) unlockedAchievements.add("speed_demon");
+  if (progress.current_streak >= 7) unlockedAchievements.add("streak_7");
+  if (progress.total_ai_sessions >= 10) unlockedAchievements.add("ai_explorer");
+  if (quizHistory.length >= 20) unlockedAchievements.add("quiz_master");
+
   return (
     <div className="min-h-screen bg-background relative">
       <AnimatedBackground />
@@ -72,10 +93,10 @@ const Analytics = () => {
         {/* Quick Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           {[
-            { label: "Total Study Hours", value: "18.1h", icon: <Clock className="h-4 w-4" />, color: "text-primary" },
-            { label: "Quizzes Completed", value: "20", icon: <Trophy className="h-4 w-4" />, color: "text-amber-400" },
-            { label: "Avg Score", value: "72%", icon: <Target className="h-4 w-4" />, color: "text-green-400" },
-            { label: "Current Streak", value: "5 days", icon: <Zap className="h-4 w-4" />, color: "text-accent" },
+            { label: "Total Study Hours", value: `${studyHours}h`, icon: <Clock className="h-4 w-4" />, color: "text-primary" },
+            { label: "Quizzes Completed", value: String(progress.total_quizzes), icon: <Trophy className="h-4 w-4" />, color: "text-amber-400" },
+            { label: "Avg Score", value: `${avgScore}%`, icon: <Target className="h-4 w-4" />, color: "text-green-400" },
+            { label: "Current Streak", value: `${progress.current_streak} days`, icon: <Zap className="h-4 w-4" />, color: "text-accent" },
           ].map((stat, i) => (
             <motion.div key={i} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
               <Card className="bg-card/50 border-border/50 backdrop-blur-sm">
@@ -93,12 +114,11 @@ const Analytics = () => {
 
         {/* Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          {/* Weekly Study Hours */}
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
             <Card className="bg-card/50 border-border/50 backdrop-blur-sm">
               <CardHeader>
                 <CardTitle className="text-lg flex items-center gap-2">
-                  <BarChart3 className="h-5 w-5 text-primary" /> Weekly Study Activity
+                  <BarChart3 className="h-5 w-5 text-primary" /> Weekly Quiz Activity
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -108,14 +128,13 @@ const Analytics = () => {
                     <XAxis dataKey="day" stroke="hsl(215, 20%, 65%)" fontSize={12} />
                     <YAxis stroke="hsl(215, 20%, 65%)" fontSize={12} />
                     <Tooltip contentStyle={{ background: "hsl(230, 30%, 10%)", border: "1px solid hsl(230, 20%, 20%)", borderRadius: 8 }} />
-                    <Bar dataKey="hours" fill="hsl(193, 100%, 50%)" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="quizzes" fill="hsl(193, 100%, 50%)" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </CardContent>
             </Card>
           </motion.div>
 
-          {/* Progress Over Time */}
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
             <Card className="bg-card/50 border-border/50 backdrop-blur-sm">
               <CardHeader>
@@ -124,20 +143,23 @@ const Analytics = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <ResponsiveContainer width="100%" height={250}>
-                  <LineChart data={progressData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(230, 20%, 20%)" />
-                    <XAxis dataKey="week" stroke="hsl(215, 20%, 65%)" fontSize={12} />
-                    <YAxis stroke="hsl(215, 20%, 65%)" fontSize={12} />
-                    <Tooltip contentStyle={{ background: "hsl(230, 30%, 10%)", border: "1px solid hsl(230, 20%, 20%)", borderRadius: 8 }} />
-                    <Line type="monotone" dataKey="score" stroke="hsl(160, 100%, 50%)" strokeWidth={2} dot={{ fill: "hsl(160, 100%, 50%)" }} />
-                  </LineChart>
-                </ResponsiveContainer>
+                {progressData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={250}>
+                    <LineChart data={progressData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(230, 20%, 20%)" />
+                      <XAxis dataKey="quiz" stroke="hsl(215, 20%, 65%)" fontSize={12} />
+                      <YAxis stroke="hsl(215, 20%, 65%)" fontSize={12} />
+                      <Tooltip contentStyle={{ background: "hsl(230, 30%, 10%)", border: "1px solid hsl(230, 20%, 20%)", borderRadius: 8 }} />
+                      <Line type="monotone" dataKey="score" stroke="hsl(160, 100%, 50%)" strokeWidth={2} dot={{ fill: "hsl(160, 100%, 50%)" }} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-[250px] flex items-center justify-center text-muted-foreground">Complete quizzes to see your progress</div>
+                )}
               </CardContent>
             </Card>
           </motion.div>
 
-          {/* Topic Distribution */}
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
             <Card className="bg-card/50 border-border/50 backdrop-blur-sm">
               <CardHeader>
@@ -158,7 +180,6 @@ const Analytics = () => {
             </Card>
           </motion.div>
 
-          {/* Skill Radar */}
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}>
             <Card className="bg-card/50 border-border/50 backdrop-blur-sm">
               <CardHeader>
@@ -190,15 +211,18 @@ const Analytics = () => {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                {achievements.map((a, i) => (
-                  <div key={i} className={`text-center p-4 rounded-lg border ${a.unlocked ? "border-amber-500/30 bg-amber-500/5" : "border-border/30 bg-muted/10 opacity-50"}`}>
-                    <div className={`w-10 h-10 rounded-full mx-auto mb-2 flex items-center justify-center ${a.unlocked ? "bg-amber-500/20" : "bg-muted/30"}`}>
-                      {a.unlocked ? <CheckCircle2 className="h-5 w-5 text-amber-400" /> : <Trophy className="h-5 w-5 text-muted-foreground" />}
+                {achievements.map((a, i) => {
+                  const unlocked = unlockedAchievements.has(a.key);
+                  return (
+                    <div key={i} className={`text-center p-4 rounded-lg border ${unlocked ? "border-amber-500/30 bg-amber-500/5" : "border-border/30 bg-muted/10 opacity-50"}`}>
+                      <div className={`w-10 h-10 rounded-full mx-auto mb-2 flex items-center justify-center ${unlocked ? "bg-amber-500/20" : "bg-muted/30"}`}>
+                        {unlocked ? <CheckCircle2 className="h-5 w-5 text-amber-400" /> : <Trophy className="h-5 w-5 text-muted-foreground" />}
+                      </div>
+                      <p className="text-xs font-semibold">{a.title}</p>
+                      <p className="text-[10px] text-muted-foreground mt-1">{a.description}</p>
                     </div>
-                    <p className="text-xs font-semibold">{a.title}</p>
-                    <p className="text-[10px] text-muted-foreground mt-1">{a.description}</p>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </CardContent>
           </Card>

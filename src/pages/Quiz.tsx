@@ -15,6 +15,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { saveQuizResult, useStudyTracker } from "@/hooks/useUserProgress";
 
 interface Question {
   question: string;
@@ -53,9 +54,12 @@ const Quiz = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<(number | null)[]>([]);
   const [timeLeft, setTimeLeft] = useState(0);
+  const [startTime, setStartTime] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [showReview, setShowReview] = useState(false);
   const { toast } = useToast();
+
+  useStudyTracker("quiz");
 
   // Timer
   useEffect(() => {
@@ -73,6 +77,21 @@ const Quiz = () => {
     return () => clearInterval(timer);
   }, [phase, timeLeft]);
 
+  // Save quiz result when finished
+  useEffect(() => {
+    if (phase === "results" && questions.length > 0) {
+      const timeTaken = Math.round((Date.now() - startTime) / 1000);
+      saveQuizResult({
+        category,
+        score: questions.reduce((acc, q, i) => acc + (answers[i] === q.answer ? 1 : 0), 0),
+        total_questions: questions.length,
+        percentage: Math.round((questions.reduce((acc, q, i) => acc + (answers[i] === q.answer ? 1 : 0), 0) / questions.length) * 100),
+        time_taken: timeTaken,
+        used_ai: useAI,
+      });
+    }
+  }, [phase]);
+
   const generateQuestions = async () => {
     setIsLoading(true);
     try {
@@ -85,6 +104,7 @@ const Quiz = () => {
           setQuestions(data.questions);
           setAnswers(new Array(data.questions.length).fill(null));
           setTimeLeft(data.questions.length * 60);
+          setStartTime(Date.now());
           setPhase("quiz");
           return;
         }
@@ -99,6 +119,7 @@ const Quiz = () => {
       setQuestions(shuffled.slice(0, questionCount));
       setAnswers(new Array(Math.min(shuffled.length, questionCount)).fill(null));
       setTimeLeft(Math.min(shuffled.length, questionCount) * 60);
+      setStartTime(Date.now());
       setPhase("quiz");
     } catch (error: any) {
       toast({ title: "Error", description: error.message || "Failed to generate questions", variant: "destructive" });
@@ -107,6 +128,7 @@ const Quiz = () => {
       setQuestions(shuffled);
       setAnswers(new Array(shuffled.length).fill(null));
       setTimeLeft(shuffled.length * 60);
+      setStartTime(Date.now());
       setPhase("quiz");
     } finally {
       setIsLoading(false);

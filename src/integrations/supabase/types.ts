@@ -35,6 +35,66 @@ export type Database = {
         }
         Relationships: []
       }
+      quiz_results: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          percentage: number
+          score: number
+          time_taken: number | null
+          total_questions: number
+          used_ai: boolean
+          user_id: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          id?: string
+          percentage: number
+          score: number
+          time_taken?: number | null
+          total_questions: number
+          used_ai?: boolean
+          user_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          percentage?: number
+          score?: number
+          time_taken?: number | null
+          total_questions?: number
+          used_ai?: boolean
+          user_id?: string
+        }
+        Relationships: []
+      }
+      study_sessions: {
+        Row: {
+          created_at: string
+          duration_seconds: number
+          id: string
+          page: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          duration_seconds?: number
+          id?: string
+          page: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          duration_seconds?: number
+          id?: string
+          page?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_operations: {
         Row: {
           code_input: string | null
@@ -62,6 +122,51 @@ export type Database = {
           operation_type?: string
           tree_type?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      user_progress: {
+        Row: {
+          branch: string | null
+          created_at: string
+          current_streak: number
+          id: string
+          last_active_date: string | null
+          modules_completed: number
+          total_ai_sessions: number
+          total_quizzes: number
+          total_study_hours: number
+          updated_at: string
+          user_id: string
+          year: string | null
+        }
+        Insert: {
+          branch?: string | null
+          created_at?: string
+          current_streak?: number
+          id?: string
+          last_active_date?: string | null
+          modules_completed?: number
+          total_ai_sessions?: number
+          total_quizzes?: number
+          total_study_hours?: number
+          updated_at?: string
+          user_id: string
+          year?: string | null
+        }
+        Update: {
+          branch?: string | null
+          created_at?: string
+          current_streak?: number
+          id?: string
+          last_active_date?: string | null
+          modules_completed?: number
+          total_ai_sessions?: number
+          total_quizzes?: number
+          total_study_hours?: number
+          updated_at?: string
+          user_id?: string
+          year?: string | null
         }
         Relationships: []
       }
