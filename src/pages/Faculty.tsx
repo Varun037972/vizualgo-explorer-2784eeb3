@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Navigation } from "@/components/Navigation";
 import AnimatedBackground from "@/components/AnimatedBackground";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,12 +10,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { 
-  Users, BookOpen, BarChart3, Settings, Shield, Plus, 
-  Search, Download, Eye, Pencil, Trash2, GraduationCap
+import {
+  Users, BookOpen, BarChart3, Settings, Shield, Plus,
+  Search, Download, Eye, Pencil, Trash2, GraduationCap,
+  UserCog, ArrowUpCircle, ArrowDownCircle, Loader2, RefreshCw
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const mockStudents = [
   { id: 1, name: "Arun Kumar", branch: "CSE", year: "3rd", quizzes: 12, avgScore: 78, lastActive: "2 hours ago" },
@@ -32,13 +34,69 @@ const mockContent = [
   { id: 4, title: "DP Interview Questions", type: "Interview", status: "Published", views: 189 },
 ];
 
+interface UserWithRole {
+  id: string;
+  email: string;
+  role: string;
+  created_at: string;
+}
+
 const Faculty = () => {
   const [searchQuery, setSearchQuery] = useState("");
+  const [roleSearch, setRoleSearch] = useState("");
+  const [users, setUsers] = useState<UserWithRole[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [changingRole, setChangingRole] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const filteredStudents = mockStudents.filter(s => 
-    s.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+  const filteredStudents = mockStudents.filter(s =>
+    s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     s.branch.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const fetchUsers = async () => {
+    setLoadingUsers(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const { data, error } = await supabase.functions.invoke("manage-roles", {
+        body: { action: "list" },
+      });
+
+      if (error) throw error;
+      setUsers(data || []);
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
+
+  const handleRoleChange = async (userId: string, action: "promote" | "demote") => {
+    setChangingRole(userId);
+    try {
+      const { data, error } = await supabase.functions.invoke("manage-roles", {
+        body: { action, user_id: userId },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      toast({
+        title: action === "promote" ? "Promoted to Faculty" : "Demoted to Student",
+        description: `User role updated successfully.`,
+      });
+      fetchUsers();
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally {
+      setChangingRole(null);
+    }
+  };
+
+  const filteredUsers = users.filter(u =>
+    u.email?.toLowerCase().includes(roleSearch.toLowerCase())
   );
 
   return (
@@ -82,6 +140,7 @@ const Faculty = () => {
         <Tabs defaultValue="students">
           <TabsList className="bg-card/50 border border-border/50 mb-6">
             <TabsTrigger value="students" className="gap-2"><Users className="h-4 w-4" /> Students</TabsTrigger>
+            <TabsTrigger value="roles" className="gap-2" onClick={() => { if (users.length === 0) fetchUsers(); }}><UserCog className="h-4 w-4" /> Roles</TabsTrigger>
             <TabsTrigger value="content" className="gap-2"><BookOpen className="h-4 w-4" /> Content</TabsTrigger>
             <TabsTrigger value="create" className="gap-2"><Plus className="h-4 w-4" /> Create</TabsTrigger>
             <TabsTrigger value="settings" className="gap-2"><Settings className="h-4 w-4" /> Settings</TabsTrigger>
@@ -137,6 +196,96 @@ const Faculty = () => {
                     ))}
                   </TableBody>
                 </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Roles Tab */}
+          <TabsContent value="roles">
+            <Card className="bg-card/50 border-border/50 backdrop-blur-sm">
+              <CardHeader>
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div>
+                    <CardTitle>Role Management</CardTitle>
+                    <CardDescription>Promote students to faculty or demote faculty to students</CardDescription>
+                  </div>
+                  <div className="flex gap-2">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input placeholder="Search by email..." className="pl-9 w-[250px]" value={roleSearch} onChange={e => setRoleSearch(e.target.value)} />
+                    </div>
+                    <Button variant="outline" size="icon" onClick={fetchUsers} disabled={loadingUsers}>
+                      <RefreshCw className={`h-4 w-4 ${loadingUsers ? "animate-spin" : ""}`} />
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {loadingUsers ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  </div>
+                ) : filteredUsers.length === 0 ? (
+                  <div className="text-center py-12 text-muted-foreground">
+                    <UserCog className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p>No users found. Click refresh to load users.</p>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Current Role</TableHead>
+                        <TableHead>Joined</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredUsers.map(u => (
+                        <TableRow key={u.id}>
+                          <TableCell className="font-medium">{u.email}</TableCell>
+                          <TableCell>
+                            <Badge className={u.role === "faculty"
+                              ? "bg-primary/20 text-primary border-primary/30"
+                              : "bg-muted text-muted-foreground"
+                            }>
+                              {u.role === "faculty" ? <Shield className="h-3 w-3 mr-1" /> : <GraduationCap className="h-3 w-3 mr-1" />}
+                              {u.role}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-muted-foreground text-sm">
+                            {new Date(u.created_at).toLocaleDateString()}
+                          </TableCell>
+                          <TableCell>
+                            {u.role === "student" ? (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="gap-1 text-primary hover:bg-primary/10"
+                                onClick={() => handleRoleChange(u.id, "promote")}
+                                disabled={changingRole === u.id}
+                              >
+                                {changingRole === u.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <ArrowUpCircle className="h-3 w-3" />}
+                                Promote
+                              </Button>
+                            ) : (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="gap-1 text-amber-400 hover:bg-amber-500/10"
+                                onClick={() => handleRoleChange(u.id, "demote")}
+                                disabled={changingRole === u.id}
+                              >
+                                {changingRole === u.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <ArrowDownCircle className="h-3 w-3" />}
+                                Demote
+                              </Button>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
