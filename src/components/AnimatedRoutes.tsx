@@ -3,8 +3,8 @@ import { AnimatePresence } from "framer-motion";
 import { Suspense, lazy } from "react";
 import PageTransition from "./PageTransition";
 import PageLoader from "./PageLoader";
+import ProtectedRoute from "./ProtectedRoute";
 
-// Lazy load all pages for code splitting
 const Index = lazy(() => import("@/pages/Index"));
 const Visualizer = lazy(() => import("@/pages/Visualizer"));
 const Demo = lazy(() => import("@/pages/Demo"));
@@ -21,6 +21,8 @@ const Analytics = lazy(() => import("@/pages/Analytics"));
 const Faculty = lazy(() => import("@/pages/Faculty"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 
+const wrap = (el: React.ReactNode) => <PageTransition>{el}</PageTransition>;
+
 const AnimatedRoutes = () => {
   const location = useLocation();
 
@@ -28,135 +30,27 @@ const AnimatedRoutes = () => {
     <AnimatePresence mode="wait" initial={false}>
       <Suspense fallback={<PageLoader />}>
         <Routes location={location} key={location.pathname}>
-          <Route
-            path="/"
-            element={
-              <PageTransition>
-                <Index />
-              </PageTransition>
-            }
-          />
-          <Route
-            path="/visualizer"
-            element={
-              <PageTransition>
-                <Visualizer />
-              </PageTransition>
-            }
-          />
-          <Route
-            path="/demo"
-            element={
-              <PageTransition>
-                <Demo />
-              </PageTransition>
-            }
-          />
-          <Route
-            path="/docs"
-            element={
-              <PageTransition>
-                <Docs />
-              </PageTransition>
-            }
-          />
-          <Route
-            path="/auth"
-            element={
-              <PageTransition>
-                <Auth />
-              </PageTransition>
-            }
-          />
-          <Route
-            path="/learn"
-            element={
-              <PageTransition>
-                <Learn />
-              </PageTransition>
-            }
-          />
-          <Route
-            path="/learn/:moduleId"
-            element={
-              <PageTransition>
-                <LearnModule />
-              </PageTransition>
-            }
-          />
-          <Route
-            path="/simulations"
-            element={
-              <PageTransition>
-                <Simulations />
-              </PageTransition>
-            }
-          />
-          <Route
-            path="/placement"
-            element={
-              <PageTransition>
-                <Placement />
-              </PageTransition>
-            }
-          />
-          <Route
-            path="/dashboard"
-            element={
-              <PageTransition>
-                <Dashboard />
-              </PageTransition>
-            }
-          />
-          <Route
-            path="/ai-tutor"
-            element={
-              <PageTransition>
-                <AITutor />
-              </PageTransition>
-            }
-          />
-          <Route
-            path="/quiz"
-            element={
-              <PageTransition>
-                <Quiz />
-              </PageTransition>
-            }
-          />
-          <Route
-            path="/analytics"
-            element={
-              <PageTransition>
-                <Analytics />
-              </PageTransition>
-            }
-          />
-          <Route
-            path="/faculty"
-            element={
-              <PageTransition>
-                <Faculty />
-              </PageTransition>
-            }
-          />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route
-            path="*"
-            element={
-              <PageTransition>
-                <NotFound />
-              </PageTransition>
-            }
-          />
-          <Route
-            path="*"
-            element={
-              <PageTransition>
-                <NotFound />
-              </PageTransition>
-            }
-          />
+          {/* Public routes */}
+          <Route path="/" element={wrap(<Index />)} />
+          <Route path="/demo" element={wrap(<Demo />)} />
+          <Route path="/docs" element={wrap(<Docs />)} />
+          <Route path="/auth" element={wrap(<Auth />)} />
+
+          {/* Student routes (auth required) */}
+          <Route path="/dashboard" element={wrap(<ProtectedRoute allowedRoles={["student"]}><Dashboard /></ProtectedRoute>)} />
+          <Route path="/visualizer" element={wrap(<ProtectedRoute><Visualizer /></ProtectedRoute>)} />
+          <Route path="/learn" element={wrap(<ProtectedRoute><Learn /></ProtectedRoute>)} />
+          <Route path="/learn/:moduleId" element={wrap(<ProtectedRoute><LearnModule /></ProtectedRoute>)} />
+          <Route path="/simulations" element={wrap(<ProtectedRoute><Simulations /></ProtectedRoute>)} />
+          <Route path="/placement" element={wrap(<ProtectedRoute><Placement /></ProtectedRoute>)} />
+          <Route path="/ai-tutor" element={wrap(<ProtectedRoute><AITutor /></ProtectedRoute>)} />
+          <Route path="/quiz" element={wrap(<ProtectedRoute><Quiz /></ProtectedRoute>)} />
+          <Route path="/analytics" element={wrap(<ProtectedRoute><Analytics /></ProtectedRoute>)} />
+
+          {/* Faculty-only route */}
+          <Route path="/faculty" element={wrap(<ProtectedRoute allowedRoles={["faculty"]}><Faculty /></ProtectedRoute>)} />
+
+          <Route path="*" element={wrap(<NotFound />)} />
         </Routes>
       </Suspense>
     </AnimatePresence>
