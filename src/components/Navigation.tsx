@@ -204,10 +204,39 @@ export const Navigation = () => {
         {/* Desktop Right Side */}
         <div className="hidden lg:flex items-center gap-3">
           {userId ? (
-            <Button variant="ghost" size="sm" className="gap-2 hover:bg-primary/10" onClick={handleLogout}>
-              <LogOut className="h-4 w-4" />
-              <span>Logout</span>
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="gap-2 hover:bg-primary/10">
+                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+                    <User className="h-3.5 w-3.5 text-primary-foreground" />
+                  </div>
+                  <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-64">
+                <DropdownMenuLabel className="flex flex-col gap-2 pb-3">
+                  <span className="text-sm font-medium truncate">{email ?? "Loading..."}</span>
+                  <Badge variant={isFaculty ? "default" : "secondary"} className="w-fit gap-1.5">
+                    {isFaculty ? <Shield className="h-3 w-3" /> : <GraduationCap className="h-3 w-3" />}
+                    {isFaculty ? "Faculty" : "Student"}
+                  </Badge>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => navigate("/dashboard")} className="gap-2 cursor-pointer">
+                  <LayoutDashboard className="h-4 w-4" />
+                  Dashboard
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/analytics")} className="gap-2 cursor-pointer">
+                  <BarChart3 className="h-4 w-4" />
+                  Analytics
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleLogout} className="gap-2 cursor-pointer text-destructive focus:text-destructive">
+                  <LogOut className="h-4 w-4" />
+                  Logout
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           ) : (
             <Link to="/auth">
               <Button variant="ghost" size="sm" className="gap-2 hover:bg-primary/10">
