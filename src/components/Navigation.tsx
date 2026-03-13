@@ -63,19 +63,32 @@ const algorithmCategories = [
 
 type NavItem = { label: string; to: string; icon: React.ReactNode };
 
-const studentLinks: NavItem[] = [
+const studentPrimaryLinks: NavItem[] = [
   { label: "Dashboard", to: "/dashboard", icon: <LayoutDashboard className="h-4 w-4" /> },
   { label: "AI Tutor", to: "/ai-tutor", icon: <Brain className="h-4 w-4" /> },
   { label: "Learn", to: "/learn", icon: <GraduationCap className="h-4 w-4" /> },
+];
+
+const studentSecondaryLinks: NavItem[] = [
   { label: "Quiz", to: "/quiz", icon: <Trophy className="h-4 w-4" /> },
   { label: "Placement", to: "/placement", icon: <Briefcase className="h-4 w-4" /> },
   { label: "Analytics", to: "/analytics", icon: <BarChart3 className="h-4 w-4" /> },
+  { label: "Demo", to: "/demo", icon: <PlayCircle className="h-4 w-4" /> },
+  { label: "Docs", to: "/docs", icon: <BookOpen className="h-4 w-4" /> },
 ];
 
-const facultyLinks: NavItem[] = [
+const facultyPrimaryLinks: NavItem[] = [
   { label: "Faculty Panel", to: "/faculty", icon: <Shield className="h-4 w-4" /> },
   { label: "Analytics", to: "/analytics", icon: <BarChart3 className="h-4 w-4" /> },
 ];
+
+const facultySecondaryLinks: NavItem[] = [
+  { label: "Demo", to: "/demo", icon: <PlayCircle className="h-4 w-4" /> },
+  { label: "Docs", to: "/docs", icon: <BookOpen className="h-4 w-4" /> },
+];
+
+const allStudentLinks: NavItem[] = [...studentPrimaryLinks, ...studentSecondaryLinks];
+const allFacultyLinks: NavItem[] = [...facultyPrimaryLinks, ...facultySecondaryLinks];
 
 const publicLinks: NavItem[] = [
   { label: "Demo", to: "/demo", icon: <PlayCircle className="h-4 w-4" /> },
