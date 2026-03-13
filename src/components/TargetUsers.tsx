@@ -32,7 +32,7 @@ const userTypes = [
 const TargetUsers = () => {
   return (
     <section id="use-cases" className="py-20 bg-card/30 scroll-mt-20">
-      <div className="container mx-auto px-4">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="text-center mb-16 space-y-4">
           <div className="inline-block px-4 py-2 rounded-full bg-accent/10 border border-accent/20 mb-4">
@@ -47,7 +47,7 @@ const TargetUsers = () => {
         </div>
 
         {/* User Types Grid */}
-        <div className="grid md:grid-cols-3 gap-8 max-w-7xl mx-auto">
+        <div className="grid md:grid-cols-3 gap-6 lg:gap-8 max-w-6xl mx-auto">
           {userTypes.map((userType, index) => {
             const Icon = userType.icon;
             return (

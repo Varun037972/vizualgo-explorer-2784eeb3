@@ -25,7 +25,7 @@ const Index = () => {
   }, []);
 
   return (
-    <main className="min-h-screen bg-background relative">
+    <main className="min-h-screen bg-background relative overflow-x-hidden">
       <ScrollProgressBar />
       <AnimatedBackground />
       <ParallaxElements />
