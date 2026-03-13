@@ -463,7 +463,7 @@ export const InlineCodeEditor = ({ value, onChange, placeholder, className }: In
   const mirrorRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const minimapRef = useRef<HTMLDivElement>(null);
-  const aiDebounceRef = useRef<NodeJS.Timeout | null>(null);
+  const aiDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isUndoRedoRef = useRef(false);
 
   const lines = useMemo(() => value.split("\n"), [value]);
