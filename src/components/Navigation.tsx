@@ -89,7 +89,6 @@ export const Navigation = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { role, userId, isFaculty, loading } = useUserRole();
   const [email, setEmail] = useState<string | null>(null);
-  const [email, setEmail] = useState<string | null>(null);
 
   useEffect(() => {
     const getEmail = async () => {
