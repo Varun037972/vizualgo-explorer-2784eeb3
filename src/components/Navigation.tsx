@@ -312,7 +312,7 @@ export const Navigation = () => {
                 <span className="font-medium">Home</span>
               </button>
 
-              {navLinks.map((item) => (
+              {allMobileLinks.map((item) => (
                 <Link key={item.to} to={item.to} onClick={() => setMobileMenuOpen(false)} className={mobileLinkClass}>
                   <span className="text-primary">{item.icon}</span>
                   <span className="font-medium">{item.label}</span>
