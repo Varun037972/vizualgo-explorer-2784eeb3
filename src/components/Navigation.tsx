@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Code2, Home, BookOpen, PlayCircle, LogIn, LogOut, Menu, GraduationCap, Briefcase, Brain, Trophy, BarChart3, Shield, LayoutDashboard, User, Settings, ChevronDown } from "lucide-react";
