@@ -87,7 +87,8 @@ export const Navigation = () => {
   const navigate = useNavigate();
   const isHome = location.pathname === "/";
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const userEmail = userId ? "Loading..." : null;
+  const { role, userId, isFaculty, loading } = useUserRole();
+  const [email, setEmail] = useState<string | null>(null);
   const [email, setEmail] = useState<string | null>(null);
 
   useEffect(() => {
