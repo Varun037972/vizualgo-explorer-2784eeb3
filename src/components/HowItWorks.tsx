@@ -31,7 +31,7 @@ const HowItWorks = () => {
   
   return (
     <section id="how-it-works" className="py-20 bg-card/30 scroll-mt-20">
-      <div className="container mx-auto px-4">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div 
           ref={headerAnimation.ref}
