@@ -187,7 +187,7 @@ export const Navigation = () => {
               </NavigationMenuContent>
             </NavigationMenuItem>
 
-            {navLinks.map((item) => (
+            {primaryLinks.map((item) => (
               <NavigationMenuItem key={item.to}>
                 <Link to={item.to}>
                   <NavigationMenuLink className={linkClass}>
@@ -197,6 +197,27 @@ export const Navigation = () => {
                 </Link>
               </NavigationMenuItem>
             ))}
+
+            {secondaryLinks.length > 0 && (
+              <NavigationMenuItem>
+                <NavigationMenuTrigger className="flex items-center gap-2 px-4 py-2.5 rounded-lg hover:bg-primary/10 font-medium">
+                  <Menu className="h-4 w-4" />
+                  More
+                </NavigationMenuTrigger>
+                <NavigationMenuContent>
+                  <div className="grid gap-1 p-3 w-[220px] bg-card/95 backdrop-blur-xl border border-border/50 rounded-xl shadow-2xl">
+                    {secondaryLinks.map((item) => (
+                      <Link key={item.to} to={item.to}>
+                        <button className="w-full flex items-center gap-3 text-sm py-2.5 px-3 rounded-lg hover:bg-primary/10 transition-all duration-300 group">
+                          <span className="text-primary">{item.icon}</span>
+                          <span className="group-hover:text-primary transition-colors font-medium">{item.label}</span>
+                        </button>
+                      </Link>
+                    ))}
+                  </div>
+                </NavigationMenuContent>
+              </NavigationMenuItem>
+            )}
 
             {isHome && (
               <>
