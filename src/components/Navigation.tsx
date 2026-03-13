@@ -63,19 +63,32 @@ const algorithmCategories = [
 
 type NavItem = { label: string; to: string; icon: React.ReactNode };
 
-const studentLinks: NavItem[] = [
+const studentPrimaryLinks: NavItem[] = [
   { label: "Dashboard", to: "/dashboard", icon: <LayoutDashboard className="h-4 w-4" /> },
   { label: "AI Tutor", to: "/ai-tutor", icon: <Brain className="h-4 w-4" /> },
   { label: "Learn", to: "/learn", icon: <GraduationCap className="h-4 w-4" /> },
+];
+
+const studentSecondaryLinks: NavItem[] = [
   { label: "Quiz", to: "/quiz", icon: <Trophy className="h-4 w-4" /> },
   { label: "Placement", to: "/placement", icon: <Briefcase className="h-4 w-4" /> },
   { label: "Analytics", to: "/analytics", icon: <BarChart3 className="h-4 w-4" /> },
+  { label: "Demo", to: "/demo", icon: <PlayCircle className="h-4 w-4" /> },
+  { label: "Docs", to: "/docs", icon: <BookOpen className="h-4 w-4" /> },
 ];
 
-const facultyLinks: NavItem[] = [
+const facultyPrimaryLinks: NavItem[] = [
   { label: "Faculty Panel", to: "/faculty", icon: <Shield className="h-4 w-4" /> },
   { label: "Analytics", to: "/analytics", icon: <BarChart3 className="h-4 w-4" /> },
 ];
+
+const facultySecondaryLinks: NavItem[] = [
+  { label: "Demo", to: "/demo", icon: <PlayCircle className="h-4 w-4" /> },
+  { label: "Docs", to: "/docs", icon: <BookOpen className="h-4 w-4" /> },
+];
+
+const allStudentLinks: NavItem[] = [...studentPrimaryLinks, ...studentSecondaryLinks];
+const allFacultyLinks: NavItem[] = [...facultyPrimaryLinks, ...facultySecondaryLinks];
 
 const publicLinks: NavItem[] = [
   { label: "Demo", to: "/demo", icon: <PlayCircle className="h-4 w-4" /> },
@@ -99,8 +112,9 @@ export const Navigation = () => {
     else setEmail(null);
   }, [userId]);
 
-  const roleLinks = isFaculty ? facultyLinks : studentLinks;
-  const navLinks = userId ? [...roleLinks, ...publicLinks] : publicLinks;
+  const primaryLinks = userId ? (isFaculty ? facultyPrimaryLinks : studentPrimaryLinks) : publicLinks;
+  const secondaryLinks = userId ? (isFaculty ? facultySecondaryLinks : studentSecondaryLinks) : [];
+  const allMobileLinks = userId ? (isFaculty ? allFacultyLinks : allStudentLinks) : publicLinks;
 
   const scrollToSection = (sectionId: string) => {
     setMobileMenuOpen(false);
@@ -173,7 +187,7 @@ export const Navigation = () => {
               </NavigationMenuContent>
             </NavigationMenuItem>
 
-            {navLinks.map((item) => (
+            {primaryLinks.map((item) => (
               <NavigationMenuItem key={item.to}>
                 <Link to={item.to}>
                   <NavigationMenuLink className={linkClass}>
@@ -183,6 +197,27 @@ export const Navigation = () => {
                 </Link>
               </NavigationMenuItem>
             ))}
+
+            {secondaryLinks.length > 0 && (
+              <NavigationMenuItem>
+                <NavigationMenuTrigger className="flex items-center gap-2 px-4 py-2.5 rounded-lg hover:bg-primary/10 font-medium">
+                  <Menu className="h-4 w-4" />
+                  More
+                </NavigationMenuTrigger>
+                <NavigationMenuContent>
+                  <div className="grid gap-1 p-3 w-[220px] bg-card/95 backdrop-blur-xl border border-border/50 rounded-xl shadow-2xl">
+                    {secondaryLinks.map((item) => (
+                      <Link key={item.to} to={item.to}>
+                        <button className="w-full flex items-center gap-3 text-sm py-2.5 px-3 rounded-lg hover:bg-primary/10 transition-all duration-300 group">
+                          <span className="text-primary">{item.icon}</span>
+                          <span className="group-hover:text-primary transition-colors font-medium">{item.label}</span>
+                        </button>
+                      </Link>
+                    ))}
+                  </div>
+                </NavigationMenuContent>
+              </NavigationMenuItem>
+            )}
 
             {isHome && (
               <>
@@ -277,7 +312,7 @@ export const Navigation = () => {
                 <span className="font-medium">Home</span>
               </button>
 
-              {navLinks.map((item) => (
+              {allMobileLinks.map((item) => (
                 <Link key={item.to} to={item.to} onClick={() => setMobileMenuOpen(false)} className={mobileLinkClass}>
                   <span className="text-primary">{item.icon}</span>
                   <span className="font-medium">{item.label}</span>
