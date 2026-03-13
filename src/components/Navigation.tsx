@@ -87,7 +87,17 @@ export const Navigation = () => {
   const navigate = useNavigate();
   const isHome = location.pathname === "/";
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { role, userId, isFaculty, loading } = useUserRole();
+  const userEmail = userId ? "Loading..." : null;
+  const [email, setEmail] = useState<string | null>(null);
+
+  useEffect(() => {
+    const getEmail = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user?.email) setEmail(session.user.email);
+    };
+    if (userId) getEmail();
+    else setEmail(null);
+  }, [userId]);
 
   const roleLinks = isFaculty ? facultyLinks : studentLinks;
   const navLinks = userId ? [...roleLinks, ...publicLinks] : publicLinks;
