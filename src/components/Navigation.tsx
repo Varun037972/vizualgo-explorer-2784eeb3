@@ -112,8 +112,9 @@ export const Navigation = () => {
     else setEmail(null);
   }, [userId]);
 
-  const roleLinks = isFaculty ? facultyLinks : studentLinks;
-  const navLinks = userId ? [...roleLinks, ...publicLinks] : publicLinks;
+  const primaryLinks = userId ? (isFaculty ? facultyPrimaryLinks : studentPrimaryLinks) : publicLinks;
+  const secondaryLinks = userId ? (isFaculty ? facultySecondaryLinks : studentSecondaryLinks) : [];
+  const allMobileLinks = userId ? (isFaculty ? allFacultyLinks : allStudentLinks) : publicLinks;
 
   const scrollToSection = (sectionId: string) => {
     setMobileMenuOpen(false);
