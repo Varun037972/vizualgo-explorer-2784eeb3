@@ -53,7 +53,7 @@ const HowItWorks = () => {
         </div>
 
         {/* Steps */}
-        <div className="max-w-6xl mx-auto">
+        <div className="max-w-5xl mx-auto">
           <div className="grid md:grid-cols-3 gap-8 relative">
             {/* Connection Line */}
             <div className="hidden md:block absolute top-24 left-0 right-0 h-0.5 bg-gradient-to-r from-primary via-secondary to-accent opacity-30"></div>

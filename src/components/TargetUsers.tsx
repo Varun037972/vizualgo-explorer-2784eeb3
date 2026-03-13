@@ -47,7 +47,7 @@ const TargetUsers = () => {
         </div>
 
         {/* User Types Grid */}
-        <div className="grid md:grid-cols-3 gap-8 max-w-7xl mx-auto">
+        <div className="grid md:grid-cols-3 gap-6 lg:gap-8 max-w-6xl mx-auto">
           {userTypes.map((userType, index) => {
             const Icon = userType.icon;
             return (

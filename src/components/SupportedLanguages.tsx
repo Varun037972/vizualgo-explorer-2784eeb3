@@ -49,7 +49,7 @@ const SupportedLanguages = () => {
         </div>
 
         {/* Languages Grid */}
-        <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+        <div className="grid md:grid-cols-3 gap-6 lg:gap-8 max-w-5xl mx-auto">
           {languages.map((language, index) => (
             <motion.div
               key={index}

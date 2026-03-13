@@ -6,7 +6,7 @@ const Footer = () => {
 
   return (
     <footer className="bg-card/80 backdrop-blur-xl border-t border-border/50">
-      <div className="container mx-auto px-4 py-12">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <SectionReveal>
           <div className="grid md:grid-cols-4 gap-8 mb-8">
             {/* Brand */}
