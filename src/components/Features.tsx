@@ -47,7 +47,7 @@ const Features = () => {
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,hsl(193_100%_50%/0.1),transparent_50%)] animate-pulse"></div>
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_50%,hsl(270_70%_65%/0.1),transparent_50%)] animate-pulse" style={{ animationDelay: '1s' }}></div>
 
-      <div className="container mx-auto px-4 relative z-10">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         {/* Section Header */}
         <div 
           ref={headerAnimation.ref}
