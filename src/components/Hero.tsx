@@ -19,8 +19,8 @@ const Hero = () => {
       </div>
 
       {/* Content */}
-      <div className="container relative z-10 mx-auto px-4 py-20 text-center">
-        <div className="max-w-5xl mx-auto space-y-8">
+      <div className="container relative z-10 mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
+        <div className="max-w-4xl mx-auto space-y-8">
           {/* Badge */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
