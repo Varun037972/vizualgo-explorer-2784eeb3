@@ -876,40 +876,42 @@ export const SortingVisualizer = () => {
   };
   const maxValue = Math.max(...array);
   const progress = steps.length > 0 ? (currentStep + 1) / steps.length * 100 : 0;
-  return <div className="space-y-6 animate-fade-in">
-      {/* Accessibility Controls */}
-      <AccessibilityControls />
+  return <div className="space-y-6">
+      {/* Quick Start & Algorithm Info Row */}
+      <div className="grid lg:grid-cols-2 gap-4">
+        <div className="premium-card p-5">
+          <AccessibilityControls />
+        </div>
+        <div className="premium-card p-5">
+          <QuickStartExamples onSelectExample={handleQuickStartExample} />
+        </div>
+      </div>
 
-      {/* Quick Start Examples */}
-      <QuickStartExamples onSelectExample={handleQuickStartExample} />
-
-      {/* Algorithm Information */}
       <AlgorithmInfo algorithm={algorithm} />
 
-      {/* Audio, Bookmarks, and Performance Panels */}
+      {/* Collapsible Panels */}
       <div className="grid md:grid-cols-3 gap-4">
         <AudioFeedbackPanel settings={audioSettings} onUpdateSettings={updateAudioSettings} onReset={resetAudioSettings} onTest={testAudioSound} />
         <StepBookmarksPanel bookmarks={bookmarks} currentStep={currentStep} totalSteps={steps.length} hasBookmarkAtStep={hasBookmarkAtStep} onAddBookmark={addBookmark} onRemoveBookmark={removeBookmark} onToggleBookmark={toggleBookmark} onJumpToStep={setCurrentStep} onJumpToNextBookmark={handleJumpToNextBookmark} onJumpToPreviousBookmark={handleJumpToPreviousBookmark} onClearBookmarks={clearBookmarks} />
         <PerformanceHistoryPanel history={performanceHistory} onClearHistory={clearPerformanceHistory} getComparisonChartData={getComparisonChartData} getAlgorithmComparisonData={getAlgorithmComparisonData} />
       </div>
 
-      {/* Code Editor */}
       <CodeEditor onCodeChange={(code, lang) => console.log("Code updated:", lang)} />
 
-      {/* Controls */}
-      <Card className="border-primary/20 hover:border-primary/40 transition-colors">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-primary" />
+      {/* Controls Panel */}
+      <div className="premium-card overflow-hidden">
+        <div className="p-5 border-b border-border/20">
+          <h3 className="text-sm font-semibold text-primary flex items-center gap-2">
+            <Sparkles className="h-4 w-4" />
             Controls
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4 border-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          </h3>
+        </div>
+        <div className="p-5 space-y-5">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Algorithm</label>
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Algorithm</label>
               <Select value={algorithm} onValueChange={value => setAlgorithm(value as Algorithm)}>
-                <SelectTrigger>
+                <SelectTrigger className="rounded-xl border-border/30 bg-background/50 h-11">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -921,73 +923,79 @@ export const SortingVisualizer = () => {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">Array Size: {arraySize}</label>
-              <Slider value={[arraySize]} onValueChange={([value]) => setArraySize(value)} min={5} max={50} step={5} disabled={isPlaying || steps.length > 0} />
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                Array Size: <span className="text-primary font-bold">{arraySize}</span>
+              </label>
+              <div className="pt-2 premium-slider">
+                <Slider value={[arraySize]} onValueChange={([value]) => setArraySize(value)} min={5} max={50} step={5} disabled={isPlaying || steps.length > 0} />
+              </div>
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">Speed: {speed}ms</label>
-              <Slider value={[speed]} onValueChange={([value]) => setSpeed(value)} min={50} max={1000} step={50} />
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                Speed: <span className="text-primary font-bold">{speed}ms</span>
+              </label>
+              <div className="pt-2 premium-slider">
+                <Slider value={[speed]} onValueChange={([value]) => setSpeed(value)} min={50} max={1000} step={50} />
+              </div>
             </div>
           </div>
 
-          <div className="space-y-2 border-t border-border pt-4">
-            <label className="text-sm font-medium">Custom Values (comma-separated):</label>
+          <div className="space-y-2 border-t border-border/20 pt-4">
+            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Custom Values</label>
             <div className="flex gap-2">
-              <Input placeholder="e.g., 45,23,67,12,89,34" value={customInput} onChange={e => setCustomInput(e.target.value)} className="flex-1" disabled={isPlaying} />
-              <Button onClick={setCustomArray} variant="outline" size="sm" disabled={isPlaying}>
+              <Input placeholder="e.g., 45,23,67,12,89,34" value={customInput} onChange={e => setCustomInput(e.target.value)} className="flex-1 rounded-xl border-border/30 bg-background/50 h-11" disabled={isPlaying} />
+              <Button onClick={setCustomArray} variant="outline" size="sm" disabled={isPlaying} className="rounded-xl h-11 px-4 border-border/30">
                 Set Array
               </Button>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Enter numbers 1-100, separated by commas
-            </p>
           </div>
 
-          <div className="flex gap-2 flex-wrap items-center">
-            <Button onClick={startVisualization} disabled={isPlaying || steps.length > 0} className="bg-gradient-primary hover:shadow-glow-primary transition-all hover:scale-105">
+          {/* Action Buttons */}
+          <div className="flex gap-2 flex-wrap items-center pt-2">
+            <Button onClick={startVisualization} disabled={isPlaying || steps.length > 0} className="rounded-xl bg-gradient-to-r from-primary to-accent hover:shadow-lg hover:shadow-primary/25 transition-all hover:scale-[1.02] px-6 h-11">
               <Play className="mr-2 h-4 w-4" />
               Visualize
             </Button>
-            <Button onClick={() => setIsPlaying(!isPlaying)} disabled={steps.length === 0} variant="outline" className="hover:scale-105 transition-transform">
+            <Button onClick={() => setIsPlaying(!isPlaying)} disabled={steps.length === 0} variant="outline" className="rounded-xl h-11 w-11 p-0 border-border/30 hover:border-primary/50 transition-all">
               {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
             </Button>
-            <Button onClick={() => setCurrentStep(Math.max(0, currentStep - 1))} disabled={currentStep === 0 || isPlaying} variant="outline" className="hover:scale-105 transition-transform">
+            <Button onClick={() => setCurrentStep(Math.max(0, currentStep - 1))} disabled={currentStep === 0 || isPlaying} variant="outline" className="rounded-xl h-11 w-11 p-0 border-border/30 hover:border-primary/50 transition-all">
               <SkipBack className="h-4 w-4" />
             </Button>
-            <Button onClick={() => setCurrentStep(Math.min(steps.length - 1, currentStep + 1))} disabled={currentStep >= steps.length - 1 || isPlaying} variant="outline" className="hover:scale-105 transition-transform">
+            <Button onClick={() => setCurrentStep(Math.min(steps.length - 1, currentStep + 1))} disabled={currentStep >= steps.length - 1 || isPlaying} variant="outline" className="rounded-xl h-11 w-11 p-0 border-border/30 hover:border-primary/50 transition-all">
               <SkipForward className="h-4 w-4" />
             </Button>
-            <Button onClick={generateRandomArray} disabled={isPlaying} variant="outline" className="hover:scale-105 transition-transform">
+            <Button onClick={generateRandomArray} disabled={isPlaying} variant="outline" className="rounded-xl h-11 w-11 p-0 border-border/30 hover:border-primary/50 transition-all">
               <RotateCcw className="h-4 w-4" />
             </Button>
-            
-            {/* Keyboard Shortcuts Help */}
-            <KeyboardShortcutsHelp triggerClassName="gap-1 md:gap-2 text-xs md:text-sm" />
-            
-            {/* Share Button */}
-            <Button onClick={handleShare} variant="outline" size="sm" className="gap-1 md:gap-2 text-xs md:text-sm hover:scale-105 transition-transform" disabled={array.length === 0}>
+
+            <div className="h-8 w-px bg-border/30 mx-1 hidden sm:block" />
+
+            <KeyboardShortcutsHelp triggerClassName="gap-2 text-sm rounded-xl" />
+
+            <Button onClick={handleShare} variant="outline" size="sm" className="gap-2 rounded-xl border-border/30 hover:border-primary/50 transition-all" disabled={array.length === 0}>
               {linkCopied ? <>
-                  <Check className="h-3 w-3 md:h-4 md:w-4 text-green-500" />
+                  <Check className="h-4 w-4 text-secondary" />
                   <span className="hidden sm:inline">Copied!</span>
                 </> : <>
-                  <Link2 className="h-3 w-3 md:h-4 md:w-4" />
+                  <Link2 className="h-4 w-4" />
                   <span className="hidden sm:inline">Share</span>
                 </>}
             </Button>
 
-            <div className="flex items-center gap-4 ml-auto border-l border-border pl-4 flex-wrap">
+            <div className="flex items-center gap-4 ml-auto border-l border-border/20 pl-4 flex-wrap">
               <div className="flex items-center gap-2">
                 <Switch id="step-explanation" checked={showStepExplanation} onCheckedChange={setShowStepExplanation} />
-                <Label htmlFor="step-explanation" className="text-sm font-medium flex items-center gap-1.5 cursor-pointer">
-                  <FileText className="h-4 w-4" />
-                  Step Explanation
+                <Label htmlFor="step-explanation" className="text-xs font-medium flex items-center gap-1.5 cursor-pointer">
+                  <FileText className="h-3.5 w-3.5" />
+                  Steps
                 </Label>
               </div>
               <div className="flex items-center gap-2">
                 <Switch id="voice-narration" checked={voiceNarrationEnabled} onCheckedChange={handleVoiceNarrationToggle} />
-                <Label htmlFor="voice-narration" className="text-sm font-medium flex items-center gap-1.5 cursor-pointer">
-                  {voiceNarrationEnabled ? <Volume2 className="h-4 w-4 text-primary" /> : <VolumeX className="h-4 w-4" />}
+                <Label htmlFor="voice-narration" className="text-xs font-medium flex items-center gap-1.5 cursor-pointer">
+                  {voiceNarrationEnabled ? <Volume2 className="h-3.5 w-3.5 text-primary" /> : <VolumeX className="h-3.5 w-3.5" />}
                   Voice
                 </Label>
               </div>
@@ -997,7 +1005,7 @@ export const SortingVisualizer = () => {
                       Voice:
                     </Label>
                     <Select value={selectedVoiceIndex.toString()} onValueChange={value => setSelectedVoiceIndex(parseInt(value))}>
-                      <SelectTrigger className="w-[140px] h-8 text-xs">
+                      <SelectTrigger className="w-[140px] h-8 text-xs rounded-lg">
                         <SelectValue placeholder="Auto" />
                       </SelectTrigger>
                       <SelectContent className="max-h-[200px]">
@@ -1010,200 +1018,159 @@ export const SortingVisualizer = () => {
                   </div>
                   <div className="flex items-center gap-2 min-w-[120px]">
                     <Label htmlFor="voice-speed" className="text-xs text-muted-foreground whitespace-nowrap">
-                      Speed: {voiceSpeed.toFixed(1)}x
+                      {voiceSpeed.toFixed(1)}x
                     </Label>
                     <Slider id="voice-speed" value={[voiceSpeed]} onValueChange={([value]) => setVoiceSpeed(value)} min={0.5} max={2} step={0.1} className="w-14" />
                   </div>
-                  <div className="flex items-center gap-2 min-w-[110px]">
-                    <Label htmlFor="voice-pitch" className="text-xs text-muted-foreground whitespace-nowrap">
-                      Pitch: {voicePitch.toFixed(1)}
-                    </Label>
-                    <Slider id="voice-pitch" value={[voicePitch]} onValueChange={([value]) => setVoicePitch(value)} min={0.5} max={2} step={0.1} className="w-14" />
-                  </div>
-                  <div className="flex items-center gap-2 min-w-[110px]">
-                    <Label htmlFor="voice-volume" className="text-xs text-muted-foreground whitespace-nowrap">
-                      Vol: {Math.round(voiceVolume * 100)}%
-                    </Label>
-                    <Slider id="voice-volume" value={[voiceVolume]} onValueChange={([value]) => setVoiceVolume(value)} min={0} max={1} step={0.1} className="w-14" />
-                  </div>
-                  <Button variant="outline" size="sm" onClick={testVoice} className="h-8 text-xs gap-1">
+                  <Button variant="outline" size="sm" onClick={testVoice} className="h-7 text-xs gap-1 rounded-lg">
                     <Volume1 className="h-3 w-3" />
                     Test
                   </Button>
-                  <Button variant="ghost" size="sm" onClick={resetVoiceSettings} className="h-8 text-xs gap-1 text-muted-foreground hover:text-foreground">
+                  <Button variant="ghost" size="sm" onClick={resetVoiceSettings} className="h-7 text-xs gap-1 text-muted-foreground rounded-lg">
                     <RotateCw className="h-3 w-3" />
-                    Reset
                   </Button>
                 </div>}
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      {/* Visualization */}
-      <Card className={`border-primary/20 transition-all ${isComplete ? 'border-green-500/50 shadow-glow-primary' : ''}`}>
-        <CardHeader>
-          <div className="space-y-3">
-            <CardTitle className="flex items-center justify-between">
-              <span className="flex items-center gap-2">
-                Visualization
-                {isComplete && <CheckCircle2 className="h-5 w-5 text-green-500 animate-scale-in" />}
+      {/* Visualization Canvas */}
+      <div className={`premium-card overflow-hidden transition-all duration-500 ${isComplete ? 'ring-1 ring-secondary/40 shadow-glow-secondary' : ''}`}>
+        <div className="p-5 border-b border-border/20 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <h3 className="text-sm font-semibold flex items-center gap-2">
+              Visualization
+              {isComplete && <CheckCircle2 className="h-4 w-4 text-secondary animate-scale-in" />}
+            </h3>
+            {steps.length > 0 && (
+              <span className="text-xs text-muted-foreground font-mono bg-muted/50 px-2.5 py-1 rounded-lg">
+                Step {currentStep + 1} / {steps.length}
               </span>
-              <span className="text-sm font-normal text-muted-foreground">
-                Step {currentStep + 1} of {steps.length || 1}
-              </span>
-            </CardTitle>
-            {steps.length > 0 && <Progress value={progress} className="h-2" />}
+            )}
           </div>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="min-h-[400px] bg-gradient-to-b from-muted/50 to-muted rounded-lg p-6 flex items-end justify-center gap-1 relative overflow-hidden">
-              {isComplete && <div className="absolute inset-0 bg-gradient-to-r from-green-500/10 via-primary/10 to-green-500/10 animate-pulse" />}
+        </div>
+
+        {steps.length > 0 && (
+          <div className="px-5 pt-3">
+            <Progress value={progress} className="h-1.5 rounded-full" />
+          </div>
+        )}
+
+        <div className="p-5">
+          <div className="space-y-5">
+            {/* Bar Chart Area */}
+            <div className="min-h-[350px] md:min-h-[400px] rounded-2xl p-6 flex items-end justify-center gap-[2px] sm:gap-1 relative overflow-hidden surface-2">
+              {/* Subtle grid background */}
+              <div className="absolute inset-0 opacity-[0.03]" style={{
+                backgroundImage: 'linear-gradient(hsl(var(--foreground)) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--foreground)) 1px, transparent 1px)',
+                backgroundSize: '40px 40px'
+              }} />
+
+              {isComplete && <div className="absolute inset-0 bg-gradient-to-r from-secondary/5 via-primary/5 to-secondary/5 animate-pulse" />}
+
               {currentStepData.array.map((value, idx) => {
-              const isComparing = currentStepData.comparing?.includes(idx);
-              const isSwapping = currentStepData.swapping?.includes(idx);
-              const isSorted = currentStepData.sorted?.includes(idx);
-              const isPivot = currentStepData.pivot === idx;
-              return <div key={idx} className={`flex flex-col items-center gap-1 relative z-10 ${isSwapping ? 'animate-bounce' : 'animate-fade-in'}`} style={{
-                flex: 1,
-                maxWidth: "60px"
-              }}>
-                    <span className={`text-xs font-mono font-bold transition-all duration-300 ${isComparing || isSwapping ? 'text-primary scale-125' : ''}`}>
-                      {value}
-                    </span>
-                    <div className={`w-full rounded-t transition-all duration-500 relative ${isPivot ? "bg-purple-500 shadow-[0_0_20px_rgba(168,85,247,0.6)]" : isSwapping ? "bg-red-500 shadow-[0_0_20px_rgba(239,68,68,0.6)] scale-110" : isComparing ? "bg-yellow-500 shadow-[0_0_20px_rgba(234,179,8,0.6)]" : isSorted ? "bg-green-500 shadow-[0_0_15px_rgba(34,197,94,0.5)]" : "bg-gradient-to-t from-primary to-primary/60"}`} style={{
-                  height: `${value / maxValue * 300}px`,
-                  minHeight: "20px",
-                  transform: isSwapping ? 'scale(1.1)' : 'scale(1)'
+                const isComparing = currentStepData.comparing?.includes(idx);
+                const isSwapping = currentStepData.swapping?.includes(idx);
+                const isSorted = currentStepData.sorted?.includes(idx);
+                const isPivot = currentStepData.pivot === idx;
+
+                let barClass = "viz-bar";
+                if (isPivot) barClass = "viz-bar-pivot";
+                else if (isSwapping) barClass = "viz-bar-swapping";
+                else if (isComparing) barClass = "viz-bar-comparing";
+                else if (isSorted) barClass = "viz-bar-sorted";
+
+                return <div key={idx} className="flex flex-col items-center gap-1.5 relative z-10" style={{
+                  flex: 1,
+                  maxWidth: "48px"
                 }}>
-                      {(isSwapping || isComparing) && <div className="absolute inset-0 bg-white/20 animate-pulse rounded-t" />}
-                    </div>
-                  </div>;
-            })}
+                      <span className={`text-[10px] font-mono font-semibold transition-all duration-300 ${isComparing || isSwapping ? 'text-primary scale-110' : 'text-muted-foreground'}`}>
+                        {value}
+                      </span>
+                      <div className={`w-full ${barClass} ${isSwapping ? 'animate-bounce' : ''}`} style={{
+                        height: `${value / maxValue * 280}px`,
+                        minHeight: "16px",
+                        borderRadius: '6px 6px 2px 2px',
+                      }}>
+                        {(isSwapping || isComparing) && <div className="absolute inset-0 bg-foreground/10 animate-pulse rounded-t-md" />}
+                      </div>
+                    </div>;
+              })}
             </div>
-            <div className="text-center space-y-2">
-              <p className={`text-lg font-semibold transition-all duration-300 ${isComplete ? 'text-green-500 animate-pulse' : ''}`}>
+
+            {/* Status */}
+            <div className="text-center space-y-1.5">
+              <p className={`text-sm font-semibold transition-all ${isComplete ? 'text-secondary' : 'text-foreground'}`}>
                 {currentStepData.description}
               </p>
-              {isComplete && <p className="text-sm text-green-500 animate-fade-in">
-                  ✨ Array sorted successfully! ✨
+              {isComplete && <p className="text-xs text-secondary animate-fade-in">
+                  ✨ Array sorted successfully!
                 </p>}
             </div>
 
-            {/* Step Explanation Panel */}
-            {showStepExplanation && currentStepData.explanation && <div className="bg-muted/50 border border-border rounded-lg p-4 space-y-3 animate-fade-in">
-                <div className="flex items-center gap-2 text-sm font-semibold text-primary">
-                  <FileText className="h-4 w-4" />
-                  Step Explanation
+            {/* Step Explanation */}
+            {showStepExplanation && currentStepData.explanation && <div className="surface-2 rounded-xl p-4 space-y-3">
+                <div className="flex items-center gap-2 text-xs font-semibold text-primary uppercase tracking-wider">
+                  <FileText className="h-3.5 w-3.5" />
+                  Step Breakdown
                 </div>
-                <div className="grid gap-3 text-sm">
-                  <div className="flex items-start gap-3 p-2 bg-background/50 rounded-md">
-                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-500/20 text-blue-500 shrink-0">
-                      <Sparkles className="h-4 w-4" />
+                <div className="grid gap-2 text-sm">
+                  <div className="flex items-start gap-3 p-3 bg-background/50 rounded-lg">
+                    <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-primary/10 text-primary shrink-0">
+                      <Sparkles className="h-3.5 w-3.5" />
                     </div>
                     <div>
-                      <p className="font-medium text-foreground">What's happening</p>
-                      <p className="text-muted-foreground">{currentStepData.explanation.action}</p>
+                      <p className="font-medium text-xs text-foreground">Action</p>
+                      <p className="text-xs text-muted-foreground">{currentStepData.explanation.action}</p>
                     </div>
                   </div>
-                  <div className="flex items-start gap-3 p-2 bg-background/50 rounded-md">
-                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-amber-500/20 text-amber-500 shrink-0">
-                      <Pointer className="h-4 w-4" />
+                  <div className="flex items-start gap-3 p-3 bg-background/50 rounded-lg">
+                    <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-accent/10 text-accent shrink-0">
+                      <Pointer className="h-3.5 w-3.5" />
                     </div>
                     <div>
-                      <p className="font-medium text-foreground">Pointer/Index Changes</p>
-                      <p className="text-muted-foreground font-mono text-xs">{currentStepData.explanation.pointerChanges}</p>
+                      <p className="font-medium text-xs text-foreground">Pointers</p>
+                      <p className="text-xs text-muted-foreground font-mono">{currentStepData.explanation.pointerChanges}</p>
                     </div>
                   </div>
-                  <div className="flex items-start gap-3 p-2 bg-background/50 rounded-md">
-                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-green-500/20 text-green-500 shrink-0">
-                      <GitCompare className="h-4 w-4" />
+                  <div className="flex items-start gap-3 p-3 bg-background/50 rounded-lg">
+                    <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-secondary/10 text-secondary shrink-0">
+                      <GitCompare className="h-3.5 w-3.5" />
                     </div>
                     <div>
-                      <p className="font-medium text-foreground">Key Comparison/Swap</p>
-                      <p className="text-muted-foreground font-mono text-xs">{currentStepData.explanation.comparison}</p>
+                      <p className="font-medium text-xs text-foreground">Comparison</p>
+                      <p className="text-xs text-muted-foreground font-mono">{currentStepData.explanation.comparison}</p>
                     </div>
                   </div>
                 </div>
               </div>}
 
             {/* Legend */}
-            <div className="flex flex-wrap gap-4 justify-center text-sm">
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-yellow-500 rounded" />
-                <span>Comparing</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-red-500 rounded" />
-                <span>Swapping</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-purple-500 rounded" />
-                <span>Pivot</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-green-500 rounded" />
-                <span>Sorted</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-primary rounded" />
-                <span>Unsorted</span>
-              </div>
+            <div className="flex flex-wrap gap-3 justify-center">
+              {[
+                { cls: "viz-bar-comparing", label: "Comparing" },
+                { cls: "viz-bar-swapping", label: "Swapping" },
+                { cls: "viz-bar-pivot", label: "Pivot" },
+                { cls: "viz-bar-sorted", label: "Sorted" },
+                { cls: "viz-bar", label: "Unsorted" },
+              ].map(({ cls, label }) => (
+                <div key={label} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <div className={`w-3 h-3 rounded-sm ${cls}`} />
+                  <span>{label}</span>
+                </div>
+              ))}
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      {/* Advanced Analysis Panels */}
+      {/* Metrics */}
       <div className="grid md:grid-cols-2 gap-4">
         <MetricsDashboard comparisons={stats.comparisons} swaps={stats.swaps} timeComplexity={stats.timeComplexity} currentStep={currentStep} totalSteps={steps.length} elapsedTime={elapsedTime} />
         <ComplexityHeatmap comparisons={stats.comparisons} swaps={stats.swaps} isActive={steps.length > 0} />
       </div>
 
       <MemoryVisualizer arraySize={array.length} currentStep={currentStep} totalSteps={steps.length} isActive={steps.length > 0} currentArray={steps[currentStep]?.array || array} />
-
-      {/* Original Stats Row (Deprecated - kept for reference) */}
-      <div className="grid md:grid-cols-3 gap-4 hidden">
-        <Card className="hover:border-primary/50 transition-all hover:shadow-glow-primary hover-scale">
-          <CardHeader>
-            <CardTitle className="text-lg text-muted-foreground">Time Complexity</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-4xl font-mono font-bold bg-gradient-primary bg-clip-text text-transparent">
-              {stats.timeComplexity}
-            </p>
-            <p className="text-xs text-muted-foreground mt-2">
-              {algorithm === "bubble" || algorithm === "insertion" || algorithm === "selection" ? "Quadratic time" : "Logarithmic time"}
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="hover:border-primary/50 transition-all hover:shadow-glow-primary hover-scale">
-          <CardHeader>
-            <CardTitle className="text-lg text-muted-foreground">Comparisons</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-4xl font-mono font-bold text-primary animate-fade-in">
-              {stats.comparisons.toLocaleString()}
-            </p>
-            <p className="text-xs text-muted-foreground mt-2">
-              Element comparisons made
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="hover:border-primary/50 transition-all hover:shadow-glow-primary hover-scale">
-          <CardHeader>
-            <CardTitle className="text-lg text-muted-foreground">Swaps</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-4xl font-mono font-bold text-primary animate-fade-in">
-              {stats.swaps.toLocaleString()}
-            </p>
-            <p className="text-xs text-muted-foreground mt-2">
-              Position changes made
-            </p>
-          </CardContent>
-        </Card>
-      </div>
     </div>;
 };
